@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages JAAS Security Domain with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -15,11 +15,11 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{sd}/authentication=classic:read-attribute\(name=login-modules\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        val = line.delete(" ")
        if ! ((val.start_with?("\"outcome\"")or
@@ -76,7 +76,7 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
 
   	cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{sd}/authentication=classic:write-attribute\(name=login-modules,value=[ \
              {\"flag\"                                   =>\"#{@resource[:flag]}\", \
               \"code\"                                   =>\"LdapExtended\", \
@@ -99,7 +99,7 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
              }}]\)"
     ]
 
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
     notice "Updating JAAS Security Domain #{@resource[:name]}"
   end
 
@@ -109,13 +109,13 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
 
     cmd1 = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{sd}:add"
     ]
 
     cmd2 = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{sd}/authentication=classic:add\(login-modules=[ \
              {\"flag\"                                   =>\"#{@resource[:flag]}\", \
               \"code\"                                   =>\"LdapExtended\", \
@@ -139,8 +139,8 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
     ]
 
     debug "Creating JAAS security domain"
-    PuppetX::Redhat.run_command(cmd1)
-    PuppetX::Redhat.run_command(cmd2)
+    PuppetX::Jboss.run_command(cmd1)
+    PuppetX::Jboss.run_command(cmd2)
   end
 
   def destroy
@@ -150,10 +150,10 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{sd}:remove"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def exists?
@@ -163,11 +163,11 @@ Puppet::Type.type(:ldap_security_domain).provide(:security_domain) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{sd}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
       login_modules_options
       true
     rescue Puppet::ExecutionFailure => e

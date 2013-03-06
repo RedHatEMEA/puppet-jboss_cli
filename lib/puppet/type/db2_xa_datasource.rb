@@ -1,6 +1,6 @@
 require 'puppet/type'
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.newtype(:db2_xa_datasource) do
   @doc = "Manages DB2 xa datasources via JBoss-cli.sh"

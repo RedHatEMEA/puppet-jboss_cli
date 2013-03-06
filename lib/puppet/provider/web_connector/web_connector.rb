@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:web_connector).provide(:web_connector) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages SSL extenions for web connectors for an instance with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -20,10 +20,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="add"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def destroy
@@ -34,10 +34,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
 
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def exists?
@@ -47,11 +47,11 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="read-resource"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
     rescue Puppet::ExecutionFailure => e
       false
     end
@@ -65,10 +65,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="read-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
       if line.start_with?("    \"result\"")
         val = line.strip
@@ -85,10 +85,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="write-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def secure
@@ -99,10 +99,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="read-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
       if line.start_with?("    \"result\"")
         val = line.strip
@@ -119,10 +119,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="write-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
 
@@ -134,10 +134,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="read-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
       if line.start_with?("    \"result\"")
         val = line.strip
@@ -154,10 +154,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="write-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def scheme
@@ -168,10 +168,10 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="read-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
       if line.start_with?("    \"result\"")
         val = line.strip
@@ -188,9 +188,9 @@ Puppet::Type.type(:web_connector).provide(:web_connector) do
     operation ="write-attribute"
     cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 end

@@ -1,6 +1,6 @@
 require 'puppet/type'
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.newtype(:mapping_module) do
   @doc = "Manages mapping modules via jboss-cli.sh"

@@ -15,7 +15,7 @@
 require 'pathname'
 require Pathname.new(__FILE__).dirname.expand_path
 
-module PuppetX::Bdf
+module PuppetX::Jboss
   def self.ip_instance(nic)
     fact_nic_name = "ipaddress_#{nic.gsub(':', '_')}"
     if fact_nic_name.empty? or Facter[fact_nic_name].nil?
@@ -66,7 +66,7 @@ module PuppetX::Bdf
   end
 
   #  Run multiple JBoss CLI commands
-  # 
+  #
   # [*engine_path*]
   #  The JBoss EAP 6 engine path. Used to locate the jboss-cli.sh script usually
   #  found under bin/ directory.
@@ -83,7 +83,7 @@ module PuppetX::Bdf
   #  comma. Trailing  comma is removed.
   #
   def self.run_jboss_cli_commands(engine_path, nic, commands=[])
-    cmds = ""  
+    cmds = ""
     commands.each do |command|
       cmds += "#{command},"
     end

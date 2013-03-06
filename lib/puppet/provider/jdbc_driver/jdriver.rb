@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages JDBC Driver for an instance with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -17,10 +17,10 @@ Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{jdbc_dri}:add\(#{dri_name},#{dri_mod_name},#{dri_cls_name},#{dri_xa_ds_cls_name}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def destroy
@@ -30,10 +30,10 @@ Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{jdbc_dri}:remove"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def exists?
@@ -43,11 +43,11 @@ Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{jdbc_dri}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
     rescue Puppet::ExecutionFailure => e
       false
     end
@@ -61,10 +61,10 @@ Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{jdbc_dri}:read-attribute\(name=driver-module-name\)"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -81,10 +81,10 @@ Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
 
     cmd = [
     "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-    "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+    "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
     "--command=#{subsys}/#{jdbc_dri}:write-attribute\(name=value,value=#{new_value}\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
 end

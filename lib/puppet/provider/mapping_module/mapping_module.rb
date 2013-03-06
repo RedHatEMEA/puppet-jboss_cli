@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:mapping_module).provide(:mapping_module) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages Mapping Modules with the jboss-cli.sh"
 
   confine :osfamily => :redhat

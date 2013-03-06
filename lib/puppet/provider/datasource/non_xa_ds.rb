@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:datasource).provide(:non_xa_ds) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages non-xa Datasources for an instance with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -13,7 +13,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     path = "/subsystem=datasources/data-source=#{@resource[:ds_name]}"
     operation = "read-resource"
     params = ""
-    output = PuppetX::Redhat.run_jboss_cli_command(@resource[:engine_path],
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path],
                                                 @resource[:nic],
                                                 path,
                                                 operation,
@@ -58,7 +58,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     h.each do |key, value|
       cmds << path + ":" + operation + "\\(name=#{key.gsub("_","-")},value=#{value}\\)"
     end
-    output = PuppetX::Redhat.run_jboss_cli_commands(@resource[:engine_path],
+    output = PuppetX::Jboss.run_jboss_cli_commands(@resource[:engine_path],
                                                  @resource[:nic],
                                                  cmds)
   end
@@ -104,21 +104,21 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     if "#{@resource[:valid_connection_checker_class_name]}".empty?
       cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{subsys}/#{ds}:add\(#{jndi_name},#{conn_url},#{dri_name},#{min_pool_size},#{max_pool_size},#{pool_prefill},#{pool_use_strict_min},#{user_name},#{password},#{idle_timeout_min},#{query_timeout},#{prepared_statements_cache_size},#{share_prepared_statements},#{background_validation},#{use_java_context}\)"
       ]
     else
       val_con_checker_cls_name = "valid-connection-checker-class-name=#{@resource[:valid_connection_checker_class_name]}"
       cmd = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{subsys}/#{ds}:add\(#{jndi_name},#{conn_url},#{dri_name},#{min_pool_size},#{max_pool_size},#{pool_prefill},#{pool_use_strict_min},#{user_name},#{password},#{idle_timeout_min},#{query_timeout},#{prepared_statements_cache_size},#{share_prepared_statements},#{background_validation},#{use_java_context},#{val_con_checker_cls_name}\)"
       ]
     end
 
     if jdbc_driver?("#{@resource[:driver_name]}")
       debug "Creating Non-XA Datasource"
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
     else
       fail "No #{@resource[:driver_name]} JDBC Driver found!"
     end
@@ -131,10 +131,10 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:remove"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def exists?
@@ -144,11 +144,11 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
       get_current_attr_values
       true
     rescue Puppet::ExecutionFailure => e
@@ -163,11 +163,11 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{jdbc_dri}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
     rescue Puppet::ExecutionFailure => e
       false
     end

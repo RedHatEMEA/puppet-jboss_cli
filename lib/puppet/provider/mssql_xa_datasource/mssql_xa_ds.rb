@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages SqlServer xa Datasources for an instance with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -27,20 +27,20 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd1 = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:add\(#{no_tx_separate_pool},#{jndi_name},#{dri_name},#{background_validation},#{val_con_checker_cls_name},#{min_pool_size},#{max_pool_size},#{idle_timeout_minutes},#{query_timeout}\)"
     ]
 
     cmd2 = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--commands=#{subsys}/#{ds}/#{server_name},#{subsys}/#{ds}/#{db_name},#{subsys}/#{ds}/#{dri_type},#{subsys}/#{ds}/#{user},#{subsys}/#{ds}/#{pwd}"
     ]
 
     if jdbc_driver?("#{@resource[:driver_name]}")
       debug "Creating SqlServer XA Datasource"
-      PuppetX::Redhat.run_command(cmd1)
-      PuppetX::Redhat.run_command(cmd2)
+      PuppetX::Jboss.run_command(cmd1)
+      PuppetX::Jboss.run_command(cmd2)
     else
       fail "No #{@resource[:driver_name]} JDBC Driver found!"
     end
@@ -51,10 +51,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
     ds = "xa-data-source=#{@resource[:ds_name]}"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:remove"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def exists?
@@ -62,11 +62,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
     ds = "xa-data-source=#{@resource[:ds_name]}"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
     rescue Puppet::ExecutionFailure => e
       false
     end
@@ -77,11 +77,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
     jdbc_dri = "jdbc-driver=#{driver}"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{jdbc_dri}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
     rescue Puppet::ExecutionFailure => e
       false
     end
@@ -95,10 +95,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
     attr = "xa-datasource-properties=ServerName:read-attribute\(name=value\)"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}/#{attr}"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -120,17 +120,17 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
       if current_value != "undefined"
         cmd = [
           "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-          "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+          "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
           "--command=#{subsys}/#{ds}/#{attr_del}"
         ]
-        PuppetX::Redhat.run_command(cmd)
+        PuppetX::Jboss.run_command(cmd)
       end
       cmd2 = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{subsys}/#{ds}/#{attr_add}"
       ]
-      PuppetX::Redhat.run_command(cmd2)
+      PuppetX::Jboss.run_command(cmd2)
     end
   end
 
@@ -143,10 +143,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
     attr = "xa-datasource-properties=DatabaseName:read-attribute\(name=value\)"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}/#{attr}"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -168,17 +168,17 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
       if current_value != "undefined"
         cmd = [
           "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-          "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+          "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
           "--command=#{subsys}/#{ds}/#{attr_del}"
         ]
-        PuppetX::Redhat.run_command(cmd)
+        PuppetX::Jboss.run_command(cmd)
       end
       cmd2 = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{subsys}/#{ds}/#{attr_add}"
       ]
-      PuppetX::Redhat.run_command(cmd2)
+      PuppetX::Jboss.run_command(cmd2)
     end
   end
 
@@ -191,10 +191,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}/#{attr}"
     ]
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -216,17 +216,17 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
       if current_value != "undefined"
         cmd = [
           "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-          "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+          "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
           "--command=#{subsys}/#{ds}/#{attr_del}"
         ]
-        PuppetX::Redhat.run_command(cmd)
+        PuppetX::Jboss.run_command(cmd)
       end
       cmd2 = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{subsys}/#{ds}/#{attr_add}"
       ]
-      PuppetX::Redhat.run_command(cmd2)
+      PuppetX::Jboss.run_command(cmd2)
     end
   end
 
@@ -239,11 +239,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}/#{user}"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -265,17 +265,17 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
       if current_value != "undefined"
         cmd = [
           "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-          "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+          "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
           "--command=#{subsys}/#{ds}/#{user_del}"
         ]
-        PuppetX::Redhat.run_command(cmd)
+        PuppetX::Jboss.run_command(cmd)
       end
       cmd2 = [
         "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
         "--command=#{subsys}/#{ds}/#{user_add}"
       ]
-      PuppetX::Redhat.run_command(cmd2)
+      PuppetX::Jboss.run_command(cmd2)
     end
   end
 
@@ -288,11 +288,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -310,10 +310,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def driver_name
@@ -325,11 +325,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -347,10 +347,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def min_pool_size
@@ -362,11 +362,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -384,11 +384,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
     ]
 
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def max_pool_size
@@ -400,11 +400,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -422,11 +422,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
     ]
 
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def query_timeout
@@ -438,11 +438,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -460,11 +460,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
     ]
 
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def idle_timeout_minutes
@@ -476,11 +476,11 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        if line.start_with?("    \"result\"")
          val = line.strip
@@ -498,10 +498,10 @@ Puppet::Type.type(:mssql_xa_datasource).provide(:mssql_xa_ds) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
     ]
 
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 end

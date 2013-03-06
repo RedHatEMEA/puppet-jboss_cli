@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages JAAS Mapping Module in security Domain with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -12,7 +12,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
     path = "/subsystem=security/security-domain=#{@resource[:security_domain_name]}/mapping=classic"
     operation = "read-attribute"
     params = "name=mapping-modules"
-    output = PuppetX::Redhat.run_jboss_cli_command(@resource[:engine_path],
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path],
                                                 @resource[:nic],
                                                 path,
                                                 operation,
@@ -54,7 +54,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
               \"module\"         =>\"#{@resource[:module]}\", \
               \"module-options\" =>  #{to_module_options()} \
              }]"
-    PuppetX::Redhat.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     notice "Updating JAAS Security Domain #{@resource[:name]}"
   end
 
@@ -80,7 +80,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
                    \"module\"         =>\"#{@resource[:module]}\", \
                    \"module-options\" =>  #{to_module_options()} \
                    }]"
-    PuppetX::Redhat.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     debug "Creation of mapping module completed"
   end
 
@@ -89,7 +89,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
     path = "/subsystem=security/security-domain=#{@resource[:security_domain_name]}/mapping=classic"
     operation = "remove"
     params = ""
-    PuppetX::Redhat.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     debug "Deletion of mapping module completed"
   end
 
@@ -98,7 +98,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
     operation = "read-resource"
     params = ""
     begin
-      PuppetX::Redhat.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+      PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
       true
     rescue Puppet::ExecutionFailure => e
       false

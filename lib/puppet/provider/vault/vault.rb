@@ -1,8 +1,8 @@
 require 'pathname'
-require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/redhat/jboss'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:vault).provide(:vault) do
-  include PuppetX::Redhat
+  include PuppetX::Jboss
   @doc = "Manages vault (to store sensitive data) with the jboss-cli.sh"
 
   confine :osfamily => :redhat
@@ -13,11 +13,11 @@ Puppet::Type.type(:vault).provide(:vault) do
     subsys = "/core-service=vault"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}:read-attribute\(name=vault-options\)"
     ]
 
-    output = PuppetX::Redhat.run_command(cmd)
+    output = PuppetX::Jboss.run_command(cmd)
     output.split("\n").collect do |line|
        val = line.delete(" ")
        if ! (val.start_with?("\"outcome\"") or
@@ -57,7 +57,7 @@ Puppet::Type.type(:vault).provide(:vault) do
 
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}:write-attribute\(name=vault-options,value={ \
                  \"ENC_FILE_DIR\"=>\"#{@resource[:enc_file_dir]}\", \
                  \"KEYSTORE_URL\"=>\"#{@resource[:keystore_url]}\", \
@@ -69,7 +69,7 @@ Puppet::Type.type(:vault).provide(:vault) do
     ]
 
     debug "Updating vault configuration"
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
     notice "Updating  vault configuration #{@resource[:name]}"
   end
 
@@ -77,7 +77,7 @@ Puppet::Type.type(:vault).provide(:vault) do
     subsys = "/core-service=vault"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}:add\(vault-options={ \
                   \"ENC_FILE_DIR\"=>\"#{@resource[:enc_file_dir]}\", \
                   \"KEYSTORE_URL\"=>\"#{@resource[:keystore_url]}\", \
@@ -88,7 +88,7 @@ Puppet::Type.type(:vault).provide(:vault) do
              }\)"
     ]
     debug "Creating vault"
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def destroy
@@ -96,21 +96,21 @@ Puppet::Type.type(:vault).provide(:vault) do
     subsys = "/core-service=vault"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}:remove"
     ]
-    PuppetX::Redhat.run_command(cmd)
+    PuppetX::Jboss.run_command(cmd)
   end
 
   def exists?
     subsys = "/core-service=vault"
     cmd = [
       "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Redhat.ip_instance("#{@resource[:nic]}")}",
+      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
       "--command=#{subsys}:read-resource"
     ]
     begin
-      PuppetX::Redhat.run_command(cmd)
+      PuppetX::Jboss.run_command(cmd)
       vault_options
       true
     rescue Puppet::ExecutionFailure => e
