@@ -14,10 +14,10 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     operation = "read-resource"
     params = ""
     output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path],
-                                                @resource[:nic],
-                                                path,
-                                                operation,
-                                                params)
+                                                  @resource[:nic],
+                                                  path,
+                                                  operation,
+                                                  params)
     output.split("\n").collect do |line|
       val = line.delete(" ")
       if ! ((val.start_with?("\"outcome\"")or
@@ -58,9 +58,9 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     h.each do |key, value|
       cmds << path + ":" + operation + "\\(name=#{key.gsub("_","-")},value=#{value}\\)"
     end
-    output = PuppetX::Jboss.run_jboss_cli_commands(@resource[:engine_path],
-                                                 @resource[:nic],
-                                                 cmds)
+    PuppetX::Jboss.run_jboss_cli_commands(@resource[:engine_path],
+                                          @resource[:nic],
+                                          cmds)
   end
 
   def get_desired_attr_values_from_type
