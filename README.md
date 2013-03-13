@@ -3,6 +3,10 @@
 This module provides Customs Puppet Providers to handle the JBoss AS7.x/EAP6.x
 CLI in standalone server mode only.
 
+## Authors
+* Gaël Chamoulaud <gael at redhat dot com>
+* Akram Ben Aissi <akram at redhat dot com> 
+
 ## Types and providers
 
 The module adds the following new types:
