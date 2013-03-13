@@ -57,4 +57,9 @@ Puppet::Type.newtype(:web_connector) do
     isrequired
     newvalues("http", "https")
   end
+
+  newproperty(:redirect_port) do
+    desc "The redirection port to use when the connector is not secured"
+  end
+
 end

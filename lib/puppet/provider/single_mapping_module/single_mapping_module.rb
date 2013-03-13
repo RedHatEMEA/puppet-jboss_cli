@@ -12,11 +12,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
     path = "/subsystem=security/security-domain=#{@resource[:security_domain_name]}/mapping=classic"
     operation = "read-attribute"
     params = "name=mapping-modules"
-    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path],
-                                                @resource[:nic],
-                                                path,
-                                                operation,
-                                                params)
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
 
     output.split("\n").collect do |line|
       val = line.delete(" ")
@@ -33,7 +29,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
              val.start_with?("{")           or
              val.start_with?("}")           or
              val.start_with?("\"response-headers\"")))
-             val = val.split("=>")
+        val = val.split("=>")
         mykey = val[0].delete("\"")
         mykey = mykey.gsub(".", "-")
         myval = val[1].delete("\"")
@@ -60,10 +56,11 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
 
   def to_module_options
     debug "Create Hash from parameters type"
+    module_options = @resource[:module_options]
     params = "{ "
-    @resource[:module_options].each do |item|
-      params = "#{params} \"#{item[0]}\" => \"#{item[1]}\", "
-      Puppet.debug "key=#{item[0]} value=#{item[1]}"
+    module_options.keys.sort.each do |key|
+      params = "#{params} \"#{key}\" => \"#{module_options[key]}\", "
+      Puppet.debug "key=#{key} value=#{module_options[key]}"
     end
     params = "#{params.chomp(", ")} }"
     Puppet.debug "Received module-options converted to Hash: #{params}"

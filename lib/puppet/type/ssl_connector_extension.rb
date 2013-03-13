@@ -34,7 +34,13 @@ Puppet::Type.newtype(:ssl_connector_extension) do
 
   newproperty(:certificate_key_file) do
     desc "The keystore containing the server certificate to be loaded.
-              The storepass and keypass for the keystore file must be identical."
+                      The storepass and keypass for the keystore file must be identical."
+    isrequired
+  end
+
+  newproperty(:key_alias) do
+    desc "The alias in the keystore to be used."
+    defaultto("jboss")
     isrequired
   end
 

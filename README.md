@@ -19,6 +19,7 @@ The module adds the following new types:
 * `mssql_xa_datasource` for managing MSSQL XA Datasource
 * `system_property` for managing the System Properties
 * `ldap_security_domain` for managing LDAP Security Domain
+* `ldap_security_realm`
 * `ssl_connector_extension`
 * `web_connector`
 * `vault`

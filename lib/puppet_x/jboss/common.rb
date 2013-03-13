@@ -60,7 +60,7 @@ module PuppetX::Jboss
   def self.run_jboss_cli_command(engine_path, nic, path, operation, params)
     cmd = [
       "#{engine_path}/bin/jboss-cli.sh", "-c",
-      "--controller=#{ip_instance("#{nic}")}", "--commands=#{path}:#{operation}\(#{params}\)"
+      "--controller=#{ip_instance("#{nic}")}", "--command=#{path}:#{operation}\(#{params}\)"
     ]
     run_command(cmd)
   end
@@ -88,12 +88,55 @@ module PuppetX::Jboss
       cmds += "#{command},"
     end
     cmds = cmds.chomp(",")
-    Puppet.debug(cmds)
-    cmd = [
-      "#{engine_path}/bin/jboss-cli.sh", "-c",
-      "--controller=#{ip_instance("#{nic}")}", "--commands=\"#{cmds}\""
-    ]
-    run_command(cmd)
+
+    if engine_path.end_with? "6.0.0"
+      ### JBoss CLI --commands attribute don't work with comma
+      ### separated - Bug AS7-4017. Fixed on EAP 6.0.1
+      commands.each do |line|
+        cmd = [
+          "#{engine_path}/bin/jboss-cli.sh", "-c",
+          "--controller=#{ip_instance("#{nic}")}", "--command=#{line}"
+        ]
+        begin
+          run_command(cmd)
+        rescue Puppet::ExecutionFailure => e
+          Puppet.debug(e)
+        end
+      end
+    else
+      cmd = [
+        "#{engine_path}/bin/jboss-cli.sh", "-c",
+        "--controller=#{ip_instance("#{nic}")}", "--commands=\"#{cmds}\""
+      ]
+      begin
+        run_command(cmd)
+      rescue Puppet::ExecutionFailure => e
+        Puppet.debug(e)
+      end
+    end
+  end
+
+
+  # Parses CLI command output to extract a single result.
+  #
+  # [*output*] A string containing a JBoss CLI command output with an entry 
+  # "result" =>  "value" entry.
+  #
+  def self.parse_single_cli_result(output)
+    val = ''
+    output.split("\n").collect do |line|
+      if line.start_with?("    \"result\"")
+        val = line.strip
+        val = val.split(" => ")[1]
+        if  val.start_with?("\"")
+          val = val.sub("\"", "")
+        end
+        val = val.chomp(",")
+        # if val ends with ", it is removed, if not it is not (see chomp)
+        val = val.chomp("\"")
+      end
+    end
+    return val
   end
 end
 

@@ -16,12 +16,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "#{password},#{certificate_key_file},#{protocol}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="add"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
   def destroy
@@ -29,12 +24,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = ""
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="remove"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
   def exists?
@@ -42,13 +32,9 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = ""
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-resource"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
     begin
-      PuppetX::Jboss.run_command(cmd)
+      PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+      true
     rescue Puppet::ExecutionFailure => e
       false
     end
@@ -56,107 +42,68 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
 
   # Manage the 'password' attribute
   def password
-    output = ''
-    val = ''
     params = "name=password"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-      if line.start_with?("    \"result\"")
-        val = line.strip
-        val = val.split(" => ")
-        val = val[1].delete("\",")
-      end
-    end
-    return val
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
   def password=(new_value)
     params = "name=password, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
+
+  # The alias name to be used in that keystore
+  def key_alias
+    params = "name=key-alias"
+    path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
+    operation ="read-attribute"
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    return PuppetX::Jboss.parse_single_cli_result(output)
+  end
+
+  def key_alias=(new_value)
+    params = "name=key-alias, value=#{new_value}"
+    path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
+    operation ="write-attribute"
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+  end
+
 
   # Manage certificate-key-file attribute
   def certificate_key_file
-    output = ''
     val = ''
     params = "name=certificate-key-file"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-      if line.start_with?("    \"result\"")
-        val = line.strip
-        val = val.split(" => ")
-        val = val[1].delete("\",")
-      end
-    end
-    return val
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
   def certificate_key_file=(new_value)
     params = "name=certificate-key-file, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
 
   # Manage 'protocol' attribute
   def protocol
-    output = ''
-    val = ''
     params = "name=protocol"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-      if line.start_with?("    \"result\"")
-        val = line.strip
-        val = val.split(" => ")
-        val = val[1].delete("\",")
-      end
-    end
-    return val
+    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
   def protocol=(new_value)
     params = "name=protocol, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{path}:#{operation}\(#{params}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 end
