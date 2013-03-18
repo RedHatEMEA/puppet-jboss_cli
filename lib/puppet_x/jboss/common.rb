@@ -91,7 +91,7 @@ module PuppetX::Jboss
     end
     cmds = cmds.chomp(",")
 
-    if engine_path.end_with? "6.0.0"
+    if product_version(engine_path, nic) == "6.0.0.GA"
       ### JBoss CLI --commands attribute don't work with comma
       ### separated - Bug AS7-4017. Fixed on EAP 6.0.1
       commands.each do |line|
@@ -118,10 +118,23 @@ module PuppetX::Jboss
     end
   end
 
+  # Returns the product-version
+  def self.product_version(engine_path, nic)
+    product_version = "read-attribute --name=product-version"
+    cmd = [
+      "#{engine_path}/bin/jboss-cli.sh", "-c",
+      "--controller=#{ip_instance("#{nic}")}", "--command=#{product_version}"
+    ]
+    begin
+      run_command(cmd)
+    rescue Puppet::ExecutionFailure => e
+      Puppet.debug(e)
+    end
+  end
 
   # Parses CLI command output to extract a single result.
   #
-  # [*output*] A string containing a JBoss CLI command output with an entry 
+  # [*output*] A string containing a JBoss CLI command output with an entry
   # "result" =>  "value" entry.
   #
   def self.parse_single_cli_result(output)
