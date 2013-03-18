@@ -7,6 +7,11 @@ CLI in standalone server mode only.
 * Gaël Chamoulaud (gael at redhat dot com)
 * Akram Ben Aissi (akram at redhat dot com)
 
+## Required Gems
+
+ * json
+ * multi-json
+
 ## Types and providers
 
 The module adds the following new types:
