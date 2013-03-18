@@ -4,8 +4,8 @@ This module provides Customs Puppet Providers to handle the JBoss AS7.x/EAP6.x
 CLI in standalone server mode only.
 
 ## Authors
-* Gaël Chamoulaud <gael at redhat dot com>
-* Akram Ben Aissi <akram at redhat dot com>
+* Gaël Chamoulaud (gael at redhat dot com)
+* Akram Ben Aissi (akram at redhat dot com)
 
 ## Types and providers
 
@@ -158,7 +158,6 @@ datasource { 'Oracle-DS':
 - **jndi_name**: Specifies the JNDI name for the datasource.
 - **max_pool_size**: Maximum number of connections in a pool
 - **min_pool_size**: Minimum number of connections in a pool
-- **name**: The datasource name.
 - **nic**: The Network Interface attached to the instance.
 - **no_tx_separate_pool**: Oracle does not like XA connections getting used both inside and outside a JTA transaction. To workaround the problem you can create separate sub-pools for the different contexts.  Valid values are `true`, `false`.
 - **password**: The datasource password. The password is set a param and not a property, because we only want to set it on creation. Then it can be changed by other mechanism.
@@ -188,6 +187,50 @@ oracle_xa_datasource { 'Oracle_XA_DS':
 }
 </pre>
 
+## Managing your XA DB2 Datasource
+
+## Parameters
+
+- **ensure**: The basic property that the resource should be in. Valid values are `present`, `absent`.
+- **ds_name**: The datasource name.
+- **engine_path**: The JBoss Engine path
+- **nic**: The Network Interface attached to the instance.
+- **driver_name**: An unique name for the JDBC driver specified in the drivers section.
+- **jndi_name**: Specifies the JNDI name for the datasource.
+- **server_name**: The database server name.
+- **database_name**: The database name.
+- **driver_type**: The Driver type.  Valid values are `1`, `2`, `3`, `4`.
+- **idle_timeout_minutes**: The idle-timeout-minutes elements indicates the maximum time in minutes a connection may be idle before being closed. Must be an Integer.
+- **max_pool_size**: Maximum number of connections in a pool
+- **min_pool_size**: Minimum number of connections in a pool
+- **no_tx_separate_pool**: Oracle does not like XA connections getting used both inside and outside a JTA transaction. To workaround the problem you can create separate sub-pools for the different contexts.  Valid values are `true`, `false`.
+- **user**: The datasource username.
+- **password**: The datasource password. The password is set a param and not a property, because we only want to set it on creation. Then it can be changed by other mechanism.
+- **query_timeout**: Any configured query timeout in seconds. Must be in Integer.
+- **background_validation**: Background Validation. The default is true.  Valid values are `true`, `false`.
+- **valid_connection_checker_class_name**: Valid Connection Checker Class Name Valid values are `org.jboss.jca.adapters.jdbc.extensions.db2.DB2ValidConnectionChecker`.
+
+## Examples
+
+<pre>
+db2_xa_datasource { 'DB2_XA_DS':
+  ensure               => 'absent',
+  ds_name              => 'myDB2XADS',
+  engine_path          => '/opt/jboss-eap-6.0.0',
+  nic                  => 'eth0',
+  jndi_name            => 'java:jboss/myDB2XADS',
+  driver_name          => 'db2',
+  server_name          => 'db.example.com',
+  database_name        => 'MyDB',
+  driver_type          => '4',
+  user                 => 'user',
+  password             => 'pwd',
+  min_pool_size        => '2',
+  max_pool_size        => '100',
+  idle_timeout_minutes => '0',
+  query_timeout        => '600',
+}
+</pre>
 
 ## Issues
 
