@@ -91,7 +91,7 @@ module PuppetX::Jboss
     end
     cmds = cmds.chomp(",")
 
-    if product_version(engine_path, nic) == "6.0.0.GA"
+    if product_version(engine_path, nic).start_with? "6.0.0.GA"
       ### JBoss CLI --commands attribute don't work with comma
       ### separated - Bug AS7-4017. Fixed on EAP 6.0.1
       commands.each do |line|
@@ -126,7 +126,7 @@ module PuppetX::Jboss
       "--controller=#{ip_instance("#{nic}")}", "--command=#{product_version}"
     ]
     begin
-      run_command(cmd)
+      return run_command(cmd)
     rescue Puppet::ExecutionFailure => e
       Puppet.debug(e)
     end
