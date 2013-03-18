@@ -5,7 +5,7 @@ CLI in standalone server mode only.
 
 ## Authors
 * Gaël Chamoulaud <gael at redhat dot com>
-* Akram Ben Aissi <akram at redhat dot com> 
+* Akram Ben Aissi <akram at redhat dot com>
 
 ## Types and providers
 
@@ -19,10 +19,10 @@ The module adds the following new types:
 * `mssql_xa_datasource` for managing MSSQL XA Datasource
 * `system_property` for managing the System Properties
 * `ldap_security_domain` for managing LDAP Security Domain
-* `ldap_security_realm`
+* `ldap_security_realm` for managing LDAP Security Realm
 * `ssl_connector_extension`
-* `web_connector`
-* `vault`
+* `web_connector` for managing WEB Connector
+* `vault` For managing VAULT
 
 ## Installing
 
@@ -35,6 +35,10 @@ have to use it) and that the master has pluginsync enabled.  Run the agent on
 the puppetmaster to cause the custom types to be synced to its local libdir
 (`puppet master --configprint libdir`) and then restart the puppetmaster so it
 loads them.
+
+## Managing your JDBC Driver
+
+
 
 ## Issues
 

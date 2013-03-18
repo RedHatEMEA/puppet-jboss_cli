@@ -7,7 +7,18 @@ Puppet::Type.newtype(:ldap_security_realm) do
     authentication against LDAP"
 
   ensurable
-  
+
+  def munge_boolean(value)
+    case value
+    when true, "true", :true
+      :true
+    when false, "false", :false
+      :false
+    else
+      fail("This parameter only takes booleans")
+    end
+  end
+
   newparam(:name, :namevar => true) do
     desc "The extension's name."
   end
@@ -47,5 +58,23 @@ Puppet::Type.newtype(:ldap_security_realm) do
     defaultto("(&amp; (sAMAccountName={0})(memberOf=AU_EVOPAJEE_RSP))")
   end
 
+  newproperty(:http_enabled) do
+    desc "Must the Web Management Console be enabled in HTTP ? "
+    defaultto 'undefined' 
+    newvalues('management-http', 'undefined')
+  end
+
+  newproperty(:https_enabled) do
+    desc "Must the Web Management Console be enabled in HTTPS ? "
+    defaultto 'management-https'
+  end
+
+  newparam(:ssl_keystore_password) do
+    desc "The password of the keystore containing the SSL certificate to be \
+      used by the management console "
+    defaultto('bdfbdf12')
+  end
+
 end
+
 

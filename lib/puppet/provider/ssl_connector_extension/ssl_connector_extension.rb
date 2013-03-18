@@ -16,7 +16,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "#{password},#{certificate_key_file},#{protocol}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="add"
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
   def destroy
@@ -24,7 +24,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = ""
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="remove"
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
   def exists?
@@ -33,7 +33,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-resource"
     begin
-      PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+      PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
       true
     rescue Puppet::ExecutionFailure => e
       false
@@ -45,7 +45,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=password"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    output = PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
@@ -53,7 +53,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=password, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
   # The alias name to be used in that keystore
@@ -61,7 +61,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=key-alias"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    output = PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
@@ -69,7 +69,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=key-alias, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
 
@@ -79,7 +79,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=certificate-key-file"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    output = PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
@@ -87,7 +87,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=certificate-key-file, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
 
@@ -96,7 +96,7 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=protocol"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="read-attribute"
-    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    output = PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     return PuppetX::Jboss.parse_single_cli_result(output)
   end
 
@@ -104,6 +104,6 @@ Puppet::Type.type(:ssl_connector_extension).provide(:ssl_connector_extension) do
     params = "name=protocol, value=#{new_value}"
     path = "/subsystem=web/connector=#{@resource[:connector_name]}/ssl=configuration"
     operation ="write-attribute"
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 end

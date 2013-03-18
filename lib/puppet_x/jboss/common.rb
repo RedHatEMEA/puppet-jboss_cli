@@ -14,6 +14,8 @@
 
 require 'pathname'
 require Pathname.new(__FILE__).dirname.expand_path
+require 'multi_json'
+
 
 module PuppetX::Jboss
   def self.ip_instance(nic)
@@ -57,12 +59,12 @@ module PuppetX::Jboss
   #     The parameters to use whit this operation and this path. Can be an empty
   #     string.
   #
-  def self.run_jboss_cli_command(engine_path, nic, path, operation, params)
+  def self.run_cli_command(engine_path, nic, path, operation, params)
     cmd = [
       "#{engine_path}/bin/jboss-cli.sh", "-c",
       "--controller=#{ip_instance("#{nic}")}", "--command=#{path}:#{operation}\(#{params}\)"
     ]
-    run_command(cmd)
+    run_command( cmd )
   end
 
   #  Run multiple JBoss CLI commands
@@ -82,7 +84,7 @@ module PuppetX::Jboss
   #  A string containing the full commands. Each command must be separated by a
   #  comma. Trailing  comma is removed.
   #
-  def self.run_jboss_cli_commands(engine_path, nic, commands=[])
+  def self.run_cli_commands(engine_path, nic, commands=[])
     cmds = ""
     commands.each do |command|
       cmds += "#{command},"
@@ -93,15 +95,15 @@ module PuppetX::Jboss
       ### JBoss CLI --commands attribute don't work with comma
       ### separated - Bug AS7-4017. Fixed on EAP 6.0.1
       commands.each do |line|
-        cmd = [
+      cmd = [
           "#{engine_path}/bin/jboss-cli.sh", "-c",
           "--controller=#{ip_instance("#{nic}")}", "--command=#{line}"
-        ]
-        begin
-          run_command(cmd)
-        rescue Puppet::ExecutionFailure => e
-          Puppet.debug(e)
-        end
+      ]
+      begin
+        run_command(cmd)
+      rescue Puppet::ExecutionFailure => e
+        Puppet.debug(e)
+      end
       end
     else
       cmd = [
@@ -138,5 +140,37 @@ module PuppetX::Jboss
     end
     return val
   end
+
+
+  # Parses CLI command output to extract a map of results.
+  #
+  # [*output*] A string containing a JBoss CLI command output with an entry
+  # "result" =>  "value" entry.
+  #
+  def self.parse_cli_result_as_map(output)
+    output = output.gsub('=>',':').gsub('undefined', '"undefined"')
+    return MultiJson.decode(output)['result']
+  end
+
+  #  Return the value pointed by path by browsing the map as a nested map (map
+  #  of maps).
+  #  If the path does not point to a valid value, input is returned or the first
+  #  valid node on the path
+  #
+  def self.hash_path(input, path)
+    Puppet.debug( "Received path #{path}")
+    path = path.start_with?("/") ? path[1..-1] : path
+    map = input
+    final_node = ''
+    path.split("/").collect do |node|
+      final_node = node
+      if( map != nil )
+        map = map[node]
+      end
+    end
+    Puppet.debug( "Got value #{map} for key #{final_node}")
+    return map
+  end
+
 end
 

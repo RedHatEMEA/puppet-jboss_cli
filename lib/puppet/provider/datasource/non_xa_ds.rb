@@ -12,7 +12,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     path = "/subsystem=datasources/data-source=#{@resource[:ds_name]}"
     operation = "read-resource"
     params = ""
-    output = PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path],
+    output = PuppetX::Jboss.run_cli_command(@resource[:engine_path],
                                                   @resource[:nic],
                                                   path,
                                                   operation,
@@ -56,7 +56,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
       cmds << path + ":" + operation + "(name=#{key.gsub("_","-")},value=#{value})"
     end
     if cmds.length >= 1
-      PuppetX::Jboss.run_jboss_cli_commands(@resource[:engine_path],
+      PuppetX::Jboss.run_cli_commands(@resource[:engine_path],
                                             @resource[:nic],
                                             cmds)
       desire.each do |key, value|
@@ -115,7 +115,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
 
     if jdbc_driver_exists?("#{@resource[:driver_name]}")
       debug "Creating Non-XA Datasource"
-      PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+      PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     else
       fail "No #{@resource[:driver_name]} JDBC Driver found!"
     end
@@ -126,7 +126,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     path = "/subsystem=datasources/data-source=#{@resource[:ds_name]}"
     operation = "remove"
     params = ""
-    PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
   end
 
   def exists?
@@ -135,7 +135,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     operation = "read-resource"
     params = ""
     begin
-      PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+      PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
       get_current_attr_values
       true
     rescue Puppet::ExecutionFailure => e
@@ -149,7 +149,7 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     operation = "read-resource"
     params = ""
     begin
-      PuppetX::Jboss.run_jboss_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+      PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     rescue Puppet::ExecutionFailure => e
       false
     end
