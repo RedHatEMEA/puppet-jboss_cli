@@ -38,6 +38,29 @@ loads them.
 
 ## Managing your JDBC Driver
 
+### Parameters
+
+- **ensure**: Valid values are `present`, `absent`.
+- **driver_name**: The JDBC Driver name.
+- **engine_path**: The JBoss Engine Path.
+- **nic**: The Network Interface attached to the instance.
+- **driver_class_name**: The JDBC Driver Class name.
+- **driver_module_name**: The JDBC Driver Module name.
+- **driver_xa_datasource_class_name**: The JDBC Driver XA Datasource Class name.
+
+### Examples
+
+<pre>
+jdbc_driver { 'db2_driver':
+  ensure                          => present,
+  driver_name                     => 'db2',
+  engine_path                     => '',
+  nic                             => 'eth0',
+  driver_module_name              => 'com.ibm.db2jcc',
+  driver_class_name               => 'com.ibm.db2.jcc.DB2Driver',
+  driver_xa_datasource_class_name => 'com.ibm.db2.jcc.DB2XADataSource',
+}
+</pre>
 
 
 ## Issues
