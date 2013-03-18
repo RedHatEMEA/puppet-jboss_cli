@@ -145,6 +145,50 @@ datasource { 'Oracle-DS':
 }
 </pre>
 
+## Managing your XA Oracle Datasource
+
+### Parameters
+
+- **background_validation**: Background Validation. The default is true.  Valid values are `true`, `false`.
+- **driver_name**: An unique name for the JDBC driver specified in the drivers section.
+- **ds_name**: The datasource name.
+- **engine_path**: The JBoss Engine path.
+- **ensure**: The basic property that the resource should be in.  Valid values are `present`, `absent`.
+- **idle_timeout_minutes**: The idle-timeout-minutes elements indicates the maximum time in minutes a connection may be idle before being closed. Must be an Integer.
+- **jndi_name**: Specifies the JNDI name for the datasource.
+- **max_pool_size**: Maximum number of connections in a pool
+- **min_pool_size**: Minimum number of connections in a pool
+- **name**: The datasource name.
+- **nic**: The Network Interface attached to the instance.
+- **no_tx_separate_pool**: Oracle does not like XA connections getting used both inside and outside a JTA transaction. To workaround the problem you can create separate sub-pools for the different contexts.  Valid values are `true`, `false`.
+- **password**: The datasource password. The password is set a param and not a property, because we only want to set it on creation. Then it can be changed by other mechanism.
+- **query_timeout**: Any configured query timeout in seconds. Must be in Integer.
+- **url**: The JDBC driver connection URL.
+- **user**: The datasource username.
+- **valid_connection_checker_class_name**: Valid Connection Checker Class Name  Valid values are `org.jboss.jca.adapters.jdbc.extensions.oracle.OracleValidConnectionChecker`.
+
+
+### Examples
+
+<pre>
+oracle_xa_datasource { 'Oracle_XA_DS':
+  ensure               => 'absent',
+  ds_name              => 'myXADSOracle',
+  engine_path          => '/opt/jboss-eap-6.0.0',
+  nic                   => 'eth0',
+  jndi_name            => 'java:/myXADSOracle',
+  url                  => 'jdbc:oracle:thin:@db.example.com:1521:DSIBLE',
+  driver_name          => 'oracle-ojdbc6',
+  min_pool_size        => '5',
+  max_pool_size        => '30',
+  idle_timeout_minutes => '0',
+  query_timeout        => '600',
+  user                 => 'mydsuser',
+  password             => 'mydspasswd',
+}
+</pre>
+
+
 ## Issues
 
 Please file any issues or suggestions on [on GitHub](https://github.com/RedHatEMEA/puppet-jboss_cli/issues)
