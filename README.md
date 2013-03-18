@@ -54,11 +54,41 @@ loads them.
 jdbc_driver { 'db2_driver':
   ensure                          => present,
   driver_name                     => 'db2',
-  engine_path                     => '',
+  engine_path                     => '/opt/jboss-6.0.0',
   nic                             => 'eth0',
   driver_module_name              => 'com.ibm.db2jcc',
   driver_class_name               => 'com.ibm.db2.jcc.DB2Driver',
   driver_xa_datasource_class_name => 'com.ibm.db2.jcc.DB2XADataSource',
+}
+
+jdbc_driver { 'h2_driver':
+  ensure                          => present,
+  driver_name                     => 'h2',
+  engine_path                     => '/opt/jboss-6.0.0',
+  nic                             => 'eth0',
+  driver_module_name              => 'com.h2database.h2',
+  driver_class_name               => 'org.h2.Driver',
+  driver_xa_datasource_class_name => 'org.h2.jdbcx.JdbcDataSource',
+}
+
+jdbc_driver { 'oracle_driver':
+  ensure                          => present,
+  driver_name                     => 'oracle-ojdbc6',
+  engine_path                     => '/opt/jboss-6.0.0',
+  nic                             => 'eth0',
+  driver_module_name              => 'com.oracle.ojdbc.ojdbc6',
+  driver_class_name               => 'oracle.jdbc.OracleDriver',
+  driver_xa_datasource_class_name => 'oracle.jdbc.xa.client.OracleXADataSource',
+}
+
+jdbc_driver { 'mssql_driver':
+  ensure                          => present,
+  driver_name                     => 'sqlserver',
+  engine_path                     => '/opt/jboss-6.0.0',
+  nic                             => 'eth0',
+  driver_module_name              => 'com.microsoft.mssql',
+  driver_class_name               => 'com.microsoft.sqlserver.jdbc.SQLServerDriver',
+  driver_xa_datasource_class_name => 'com.microsoft.sqlserver.jdbc.SQLServerXADataSource',
 }
 </pre>
 
