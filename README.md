@@ -60,7 +60,9 @@ jdbc_driver { 'db2_driver':
   driver_class_name               => 'com.ibm.db2.jcc.DB2Driver',
   driver_xa_datasource_class_name => 'com.ibm.db2.jcc.DB2XADataSource',
 }
+</pre>
 
+<pre>
 jdbc_driver { 'h2_driver':
   ensure                          => present,
   driver_name                     => 'h2',
@@ -70,7 +72,9 @@ jdbc_driver { 'h2_driver':
   driver_class_name               => 'org.h2.Driver',
   driver_xa_datasource_class_name => 'org.h2.jdbcx.JdbcDataSource',
 }
+</pre>
 
+<pre>
 jdbc_driver { 'oracle_driver':
   ensure                          => present,
   driver_name                     => 'oracle-ojdbc6',
@@ -80,7 +84,9 @@ jdbc_driver { 'oracle_driver':
   driver_class_name               => 'oracle.jdbc.OracleDriver',
   driver_xa_datasource_class_name => 'oracle.jdbc.xa.client.OracleXADataSource',
 }
+</pre>
 
+<pre>
 jdbc_driver { 'mssql_driver':
   ensure                          => present,
   driver_name                     => 'sqlserver',
@@ -92,6 +98,52 @@ jdbc_driver { 'mssql_driver':
 }
 </pre>
 
+## Managing your Non-XA Datasources
+
+### Parameters
+
+- **ensure**: The basic property that the resource should be in.  Valid values are `present`, `absent`.
+- **ds_name**: The datasource name.
+- **engine_path**: The JBoss Engine path.
+- **nic**: The Network Interface attached to the instance.
+- **jndi_name**: Specifies the JNDI name for the datasource.
+- **connection_url**: The JDBC driver connection URL.
+- **driver_name**: An unique name for the JDBC driver specified in the drivers section.
+- **idle_timeout_minutes**: The idle-timeout-minutes elements indicates the maximum time in minutes a connection may be idle before being closed. Must be an Integer.
+- **min_pool_size**: Minimum number of connections in a pool
+- **max_pool_size**: Maximum number of connections in a pool
+- **user_name**: The datasource username.
+- **password**: The datasource password. The password is set a param and not a property, because we only want to set it on creation. Then it can be changed by other mechanism.
+- **pool_prefill**: Whether to attempt to prefill the connection pool. The default is true. Valid values are `true`, `false`.
+- **pool_use_strict_min**: Define if the min-pool-size should be considered a strictly. The default is true. Valid values are `true`, `false`.
+- **prepared_statements_cache_size**: The number of prepared statements per connection in an LRU cache. Must be an Integer.
+- **query_timeout**: Any configured query timeout in seconds. Must be in Integer.
+- **share_prepared_statements**: Whether to share prepare statements, i.e. whether asking for same statement twice without closing uses the same underlying prepared statement. The default is true.  Valid values are `true`, `false`.
+- **use_java_context**: If java context (java:jboss/ our java:) must be appended to datasource JNDI name. The default is true.  Valid values are `true`, `false`.
+- **valid_connection_checker_class_name**: Valid Connection Checker Class Name.
+- **background_validation**: Background Validation. The default is true. Valid values are `true`, `false`.
+
+### Examples
+
+<pre>
+datasource { 'Oracle-DS':
+  ensure                         => present,
+  ds_name                        => 'protoOracleDatasource',
+  engine_path                    => '/opt/jboss-eap-6.0.0',
+  nic                            => 'eth0',
+  jndi_name                      => 'java:jboss/jdbc/protoOracleDatasource',
+  connection_url                 => 'jdbc:oracle:thin:@db.example.com:1521:JBPAJ',
+  driver_name                    => 'oracle-ojdbc6',
+  min_pool_size                  => '15',
+  max_pool_size                  => '350',
+  user_name                      => 'jboss',
+  password                       => 'jboss',
+  idle_timeout_minutes           => '15',
+  query_timeout                  => '350',
+  prepared_statements_cache_size => '150',
+  use_java_context               => true,
+}
+</pre>
 
 ## Issues
 
