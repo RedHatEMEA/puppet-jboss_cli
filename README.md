@@ -36,6 +36,28 @@ the puppetmaster to cause the custom types to be synced to its local libdir
 (`puppet master --configprint libdir`) and then restart the puppetmaster so it
 loads them.
 
+## Managing your System Properties
+
+### Parameters
+
+- **engine_path**: The path of the JBoss Engine
+- **ensure**: The basic property that the resource should be in. Valid values are `present`, `absent`.
+- **nic**: The Network Interface attached to the instance.
+- **sp_name**: The System Property name
+- **value**: The system property value
+
+### Examples
+
+<pre>
+system_property { 'environment':
+  ensure       => present,
+  engine_path  => '/opt/jboss-eap-6.0.0',
+  nic          => 'eth0',
+  sp_name      => 'environment',
+  value        => 'DEV',
+}
+</pre>
+
 ## Managing your JDBC Driver
 
 ### Parameters
@@ -171,7 +193,7 @@ datasource { 'Oracle-DS':
 
 <pre>
 oracle_xa_datasource { 'Oracle_XA_DS':
-  ensure               => 'absent',
+  ensure               => absent,
   ds_name              => 'myXADSOracle',
   engine_path          => '/opt/jboss-eap-6.0.0',
   nic                   => 'eth0',
@@ -214,7 +236,7 @@ oracle_xa_datasource { 'Oracle_XA_DS':
 
 <pre>
 db2_xa_datasource { 'DB2_XA_DS':
-  ensure               => 'absent',
+  ensure               => present,
   ds_name              => 'myDB2XADS',
   engine_path          => '/opt/jboss-eap-6.0.0',
   nic                  => 'eth0',
