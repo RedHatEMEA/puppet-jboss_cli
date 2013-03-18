@@ -9,8 +9,13 @@ CLI in standalone server mode only.
 
 ## Required Gems
 
- * json
- * multi-json
+ * `json`
+ * `multi-json`
+ * `Jboss EAP` >= 6.0.0 or `Jboss AS` >= 7.1.2
+
+## Features
+
+## Limitations
 
 ## Types and providers
 
