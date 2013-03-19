@@ -50,6 +50,7 @@ Puppet::Type.newtype(:datasource) do
 
     validate do |value|
       unless value =~ /^jdbc:oracle:\w*:@[0-9a-zA-Z]+([\-.][0-9a-zA-Z]+)*:\d{1,}:[0-9a-zA-Z]+$/ or
+        value =~ /^jdbc:oracle:\w*:@[0-9a-zA-Z]+$/ or
         value =~ /^jdbc:db2:\/\/[0-9a-zA-Z]+([\-.][0-9a-zA-Z]+)*:\d{1,}\/[0-9a-zA-Z]+$/ or
         value =~ /^jdbc:sqlserver:\/\/[0-9a-zA-Z]+([\-.][0-9a-zA-Z]+)*:\d{1,}\/[0-9a-zA-Z]+$/ or
         value =~ /^jdbc:h2:/
