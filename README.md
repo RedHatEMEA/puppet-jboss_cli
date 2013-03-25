@@ -1,5 +1,7 @@
 # Manage the JBoss Command Line Management tool with Puppet in Standalone Server mode
 
+**Warning: this project is currently work in progress !**
+
 This module provides Customs Puppet Providers to handle the JBoss AS7.x/EAP6.x
 CLI in standalone server mode only.
 
