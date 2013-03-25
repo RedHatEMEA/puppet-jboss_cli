@@ -13,7 +13,6 @@ CLI in standalone server mode only.
 
  * `json`
  * `multi-json`
- * `Jboss EAP` >= 6.0.0 or `Jboss AS` >= 7.1.2
 
 ## Features
 
