@@ -136,7 +136,8 @@ Puppet::Type.type(:datasource).provide(:non_xa_ds) do
     params = ""
     begin
       PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
-      get_current_attr_values
+      # if @resource[:ensure] is :absent, no need to call get_current_attr_values methods
+      get_current_attr_values unless @resource[:ensure].inspect == :absent
       true
     rescue Puppet::ExecutionFailure => e
       false
