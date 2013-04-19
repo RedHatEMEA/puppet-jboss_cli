@@ -9,10 +9,10 @@ Puppet::Type.newtype(:h2_xa_datasource) do
 
   def munge_boolean(value)
     case value
-      when true, "true", :true
-        :true
-      when false, "false", :false
-        :false
+    when true, "true", :true, 'true'
+      return :true
+    when false, "false", :false, 'false'
+      return :false
     else
       fail("This parameter only takes booleans")
     end
@@ -28,112 +28,251 @@ Puppet::Type.newtype(:h2_xa_datasource) do
 
   newparam(:nic) do
     desc "The Network Interface attached to the instance."
-    isrequired
   end
 
   newparam(:ds_name) do
-    desc "The datasource name."
+    desc "A String, which is the datasource name."
   end
 
-  newparam(:no_tx_separate_pool) do
-    desc "Oracle does not like XA connections getting used both inside and outside a JTA transaction. To workaround the problem you can create separate sub-pools for the different contexts."
+  newproperty(:jndi_name) do
+    desc "A String, which specifies the JNDI name of this datasource. \
+      The given string must begin with 'java:/' or 'java:jboss/'."
 
-    defaultto :true
-    newvalues(:true, :false)
-
-    munge do |value|
-      @resource.munge_boolean(value)
-    end
-  end
-
-  newparam(:jndi_name) do
-    desc "Specifies the JNDI name for the datasource."
+    defaultto(:nil)
 
     validate do |value|
       unless value =~ /^java:jboss\/([\/\-_0-9a-zA-Z]+)$/ or
-             value =~ /^java:\/([\/\-_0-9a-zA-Z]+)$/
+        value =~ /^java:\/([\/\-_0-9a-zA-Z]+)$/ or
+        value == :nil
         raise ArgumentError , "#{value} is not a valid jndi name."
       end
     end
   end
 
   newproperty(:driver_name) do
-    desc "An unique name for the JDBC driver specified in the drivers section."
+    desc "A String, which specifies the name of the JDBC Driver this \
+      datasource will use. \
+      Note that a JDBC Driver with the given name must exists."
 
-    isrequired
+    defaultto(:nil)
   end
 
-  newproperty(:user) do
-    desc "The datasource username."
-  end
+  newproperty(:connection_url) do
+    desc "A String, which specifies the Connection URL of this datasource. \
+      The given string must repect a specific format, regarding refered JDBC Driver. \
+      Ex : \
+        - for h2     : 'jdbc:h2:*:@ip:*:*' ;"
 
-  newparam(:password) do
-    desc "The datasource password. The password is set a param and not a \
-          property, because we only want to set it on creation. Then it \
-          can be changed by other mechanism."
-
-    isrequired
-  end
-
-  newproperty(:url) do
-    desc "The JDBC driver connection URL."
+    defaultto(:nil)
 
     validate do |value|
-      unless value =~ /^jdbc:h2:/
+      unless value =~ /^jdbc:h2:/ or
+        value == :nil
         raise ArgumentError , "#{value} is not a valid connection url."
       end
     end
   end
 
+  newproperty(:user_name) do
+    desc "The datasource username."
+
+    defaultto(:nil)
+  end
+
+  newparam(:password) do
+    desc "The datasource password. The password is a Puppet Param (and not a \
+      Puppet Property), because we only want to set it on creation. \
+      After its creation, it will not be managed by Puppet."
+
+    defaultto(:nil)
+  end
+
   newproperty(:min_pool_size) do
-    desc "Minimum number of connections in a pool"
+    desc "An Integer, which defines the minimum number of connections in a pool."
+
+    defaultto("0") # same as jboss default value
 
     validate do |value|
-      unless value =~ /^[0-9]+$/
-        raise ArgumentError , "#{value} is not a valid min-pool-size value."
+      unless value == :nil or String(value) =~ /^[0-9]+$/
+        raise ArgumentError , "#{value} is not a valid 'min-pool-size' value (not an integer)."
       end
+    end
+    # If not undefined, convert to Integer
+    munge do |value|
+      return value if value == :nil
+      return Integer(value)
     end
   end
 
   newproperty(:max_pool_size) do
-    desc "Maximum number of connections in a pool"
+    desc "An Integer, which defines the maximum number of connections in a pool."
+
+    defaultto("20") # same as jboss default value
 
     validate do |value|
-      unless value =~ /^[0-9]+$/
-        raise ArgumentError , "#{value} is not a valid max-pool-size value."
+      unless value == :nil or String(value) =~ /^[1-9][0-9]*$/
+        raise ArgumentError , "#{value} is not a valid 'max-pool-size' value (not a strictly positive integer)."
       end
+      unless value == :nil or resource[:min_pool_size] == :nil or Integer(value) >= Integer(resource[:min_pool_size])
+        raise ArgumentError , "#{value} is not a valid 'max-pool-size' value (can't be <'min-pool-size')."
+      end
+    end
+    # If not undefined, convert to Integer
+    munge do |value|
+      return value if value == :nil
+      return Integer(value)
+    end
+  end
+
+  newproperty(:pool_prefill) do
+    desc "A Boolean, which specifies if the connection pool is prefilled or not. \
+      The default is true."
+
+    newvalues(:true, :false)
+    defaultto(:true)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return @resource.munge_boolean(value)
+    end
+  end
+
+  newproperty(:pool_use_strict_min) do
+    desc "A Boolean, which defines if the min-pool-size should be considered a \
+      strictly way. \
+      The default is true."
+
+    newvalues(:true, :false)
+    defaultto(:true)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return @resource.munge_boolean(value)
     end
   end
 
   newproperty(:idle_timeout_minutes) do
-    desc "The idle-timeout-minutes elements indicates the maximum time in minutes a connection may be idle before being closed. Must be an Integer."
+    desc "An Integer, which defines the maximum time in minutes a connection \
+      may be idle before being closed. \
+      /!\ \
+      Due to a bug in the datasource subsystem, this attribute cannot be removed. \
+      The only solution is to destroy the datasource's resource (e.g. 'absent') \
+      with a first puppet run, and to create the datasource's resource (e.g. 'present') \
+      without this attribute with a second puppet run."
+
+    defaultto(:nil)
 
     validate do |value|
-      unless value =~ /^[0-9]+$/
-        raise ArgumentError , "#{value} is not a valid idle-timeout-minutes value."
+      unless value == :nil or String(value) =~ /^[0-9]+$/
+        raise ArgumentError , "#{value} is not a valid 'idle-timeout-minutes' value (not an integer)."
       end
+    end
+    # If not undefined, convert to Integer
+    munge do |value|
+      return value if value == :nil
+      return Integer(value)
     end
   end
 
   newproperty(:query_timeout) do
     desc "Any configured query timeout in seconds. Must be in Integer."
 
+    defaultto(:nil)
+
     validate do |value|
-      unless value =~ /^[0-9]+$/
-        raise ArgumentError , "#{value} is not a valid query-timeout value."
+      unless value == :nil or String(value) =~ /^[0-9]+$/
+        raise ArgumentError , "#{value} is not a valid 'query-timeout' value (not an integer)."
       end
+    end
+    # If not undefined, convert to Integer
+    munge do |value|
+      return value if value == :nil
+      return Integer(value)
+    end
+  end
+
+  newproperty(:prepared_statements_cache_size) do
+    desc "The number of prepared statements per connection in an LRU cache. \
+      Must be an Integer."
+
+    defaultto("200")
+
+    validate do |value|
+      unless value == :nil or String(value) =~ /^[0-9]+$/
+        raise ArgumentError , "#{value} is not a valid 'prepared-statements-cache-size' value (not an integer)."
+      end
+    end
+    # If not undefined, convert to Integer
+    munge do |value|
+      return value if value == :nil
+      return Integer(value)
+    end
+  end
+
+  newproperty(:share_prepared_statements) do
+    desc "A Boolean. Whether to share prepare statements, i.e. whether asking \
+      for same statement twice without closing uses the same underlying \
+      prepared statement. The default is true."
+
+    newvalues(:true, :false)
+    defaultto(:true)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return @resource.munge_boolean(value)
     end
   end
 
   newproperty(:background_validation) do
-    desc "Background Validation. The default is true."
+    desc "A Boolean. Performs or not Background Validation. \
+      The default is true."
 
-    defaultto :true
     newvalues(:true, :false)
-
+    defaultto(:true)
+    # Convert Raw data to Typed data
     munge do |value|
-      @resource.munge_boolean(value)
+      return @resource.munge_boolean(value)
     end
+  end
+
+  newproperty(:use_java_context) do
+    desc "A boolean. If java context (java:jboss/ or java:) must be pre-pended \
+      to datasource JNDI name. \
+      The default is true."
+
+    newvalues(:true, :false)
+    defaultto(:true)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return @resource.munge_boolean(value)
+    end
+  end
+
+  newproperty(:valid_connection_checker_class_name) do
+    desc "Valid Connection Checker Class Name"
+    # TODO : find default values for H2
+    defaultto{:nil}
+    # Convert Raw data to Typed data
+    munge do |value|
+      return value if value == :nil
+      return String(value)
+    end
+  end
+
+  newproperty(:no_tx_separate_pool) do
+    desc "Oracle does not like XA connections getting used both inside and outside a JTA transaction. To workaround the problem you can create separate sub-pools for the different contexts."
+
+    newvalues(:true, :false)
+    defaultto(:true)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return @resource.munge_boolean(value)
+    end
+  end
+
+  validate do
+    errors = []
+    errors.push("Attribute 'engine_path' is mandatory !") if !@parameters.include?(:engine_path)
+    errors.push("Attribute 'nic' is mandatory !") if !@parameters.include?(:nic)
+    errors.push("Attribute 'ds_name' is mandatory !") if !@parameters.include?(:ds_name)
+    raise Puppet::Error, errors.inspect if( !errors.empty? )
   end
 
 end

@@ -29,11 +29,21 @@ The module adds the following new types:
 * `oracle_xa_datasource` for managing Oracle XA Datasource
 * `mssql_xa_datasource` for managing MSSQL XA Datasource
 * `system_property` for managing the System Properties
+* `ldap_authentication`
+* `ldap_connection`
 * `ldap_security_domain` for managing LDAP Security Domain
 * `ldap_security_realm` for managing LDAP Security Realm
 * `ssl_connector_extension`
 * `web_connector` for managing WEB Connector
 * `vault` For managing VAULT
+* `logger`
+* `log_handler`
+* `management_interface`
+* `management_realm`
+* `mapping_module`
+* `server_identity`
+* `single_ldap_security_domain`
+* `single_mapping_module`
 
 ## Installing
 

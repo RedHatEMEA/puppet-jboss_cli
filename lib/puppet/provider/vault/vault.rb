@@ -4,117 +4,98 @@ require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'pu
 Puppet::Type.type(:vault).provide(:vault) do
   include PuppetX::Jboss
   @doc = "Manages vault (to store sensitive data) with the jboss-cli.sh"
-
   confine :osfamily => :redhat
-
-  def vault_options
-    attributes = {}
-    val = ""
-    subsys = "/core-service=vault"
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}:read-attribute\(name=vault-options\)"
-    ]
-
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       val = line.delete(" ")
-       if ! (val.start_with?("\"outcome\"") or
-             val.start_with?("\"result\"")  or
-             val.start_with?("}]")          or
-             val.start_with?("{")           or
-             val.start_with?("}")          )
-         val = val.split("=>")
-         mykey = val[0].delete("\"")
-         mykey = mykey.gsub(".", "-")
-         myval = val[1].delete("\"")
-         myval = myval.chomp(",")
-         attributes.store(mykey, myval)
-       end
+  def exists?
+    vault_options = { 'ENC_FILE_DIR' => @resource[:enc_file_dir],
+      'KEYSTORE_URL' => @resource[:keystore_url],
+      'KEYSTORE_PASSWORD' => @resource[:keystore_password],
+      'KEYSTORE_ALIAS' => @resource[:keystore_alias],
+      'SALT' => @resource[:salt] ,
+      'ITERATION_COUNT' => @resource[:iteration_count] }
+    flat_vault_options = FlatHash.new(vault_options)
+    $expected_attrs = {'vault-options' => flat_vault_options }
+    $current_attrs = {}
+    $engine_path = @resource[:engine_path]
+    $nic = @resource[:nic]
+    $path = "/core-service=vault"
+    begin
+      $current_attrs = PuppetX::Jboss.exec_command($engine_path, $nic, $path, "read-resource", "recursive=true")
+      return true
+    rescue Puppet::ExecutionFailure => e
+      return false
     end
-    hashparams = create_hash_from_param
-    if hashparams != attributes
-      update_vault_options
-    end
-  end
-
-  def create_hash_from_param
-    debug "Create Hash from parameters type"
-    params = { "ENC_FILE_DIR"=>"#{@resource[:enc_file_dir]}",
-               "KEYSTORE_URL"=>"#{@resource[:keystore_url]}",
-               "KEYSTORE_PASSWORD"=>"#{@resource[:keystore_password]}",
-               "KEYSTORE_ALIAS"=>"#{@resource[:keystore_alias]}",
-               "SALT"=>"#{@resource[:salt]}",
-               "ITERATION_COUNT"=>"#{@resource[:iteration_count]}"
-             }
-    return params
-  end
-
-  def update_vault_options
-    debug "Update existing vault-options properties"
-    subsys = "/core-service=vault"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}:write-attribute\(name=vault-options,value={ \
-                 \"ENC_FILE_DIR\"=>\"#{@resource[:enc_file_dir]}\", \
-                 \"KEYSTORE_URL\"=>\"#{@resource[:keystore_url]}\", \
-                 \"KEYSTORE_PASSWORD\"=>\"#{@resource[:keystore_password]}\", \
-                 \"KEYSTORE_ALIAS\"=>\"#{@resource[:keystore_alias]}\", \
-                 \"SALT\"=> \"#{@resource[:salt]}\" , \
-                 \"ITERATION_COUNT\"=>\"#{@resource[:iteration_count]}\" \
-             }\)"
-    ]
-
-    debug "Updating vault configuration"
-    PuppetX::Jboss.run_command(cmd)
-    notice "Updating  vault configuration #{@resource[:name]}"
   end
 
   def create
-    subsys = "/core-service=vault"
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}:add\(vault-options={ \
-                  \"ENC_FILE_DIR\"=>\"#{@resource[:enc_file_dir]}\", \
-                  \"KEYSTORE_URL\"=>\"#{@resource[:keystore_url]}\", \
-                  \"KEYSTORE_PASSWORD\"=>\"#{@resource[:keystore_password]}\", \
-                  \"KEYSTORE_ALIAS\"=>\"#{@resource[:keystore_alias]}\", \
-                  \"SALT\"=> \"#{@resource[:salt]}\" , \
-                  \"ITERATION_COUNT\"=>\"#{@resource[:iteration_count]}\" \
-             }\)"
-    ]
-    debug "Creating vault"
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.exec_command($engine_path, $nic, $path, "add", build_params_for_create())
   end
 
   def destroy
-    debug "Destroying vault"
-    subsys = "/core-service=vault"
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}:remove"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+    PuppetX::Jboss.exec_command($engine_path, $nic, $path, "remove")
   end
 
-  def exists?
-    subsys = "/core-service=vault"
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}:read-resource"
-    ]
-    begin
-      PuppetX::Jboss.run_command(cmd)
-      vault_options
-      true
-    rescue Puppet::ExecutionFailure => e
-      false
-    end
+  def flush
+    PuppetX::Jboss.update_attributes($engine_path, $nic, $path, $current_attrs, $expected_attrs)
   end
+
+  def enc_file_dir
+    return $current_attrs['vault-options']["ENC_FILE_DIR"]
+  end
+
+  def enc_file_dir=(new_value)
+    $expected_attrs['vault-options']["ENC_FILE_DIR"] = new_value
+  end
+
+  def keystore_url
+    return $current_attrs['vault-options']["KEYSTORE_URL"]
+  end
+
+  def keystore_url=(new_value)
+    $expected_attrs['vault-options']["KEYSTORE_URL"] = new_value
+  end
+
+  def keystore_password
+    return $current_attrs['vault-options']["KEYSTORE_PASSWORD"]
+  end
+
+  def keystore_password=(new_value)
+    $expected_attrs['vault-options']["KEYSTORE_PASSWORD"] = new_value
+  end
+
+  def keystore_alias
+    return $current_attrs['vault-options']["KEYSTORE_ALIAS"]
+  end
+
+  def keystore_alias=(new_value)
+    $expected_attrs['vault-options']["KEYSTORE_ALIAS"] = new_value
+  end
+
+  def salt
+    return $current_attrs['vault-options']["SALT"]
+  end
+
+  def salt=(new_value)
+    $expected_attrs['vault-options']["SALT"] = new_value
+  end
+
+  def iteration_count
+    return $current_attrs['vault-options']["ITERATION_COUNT"]
+  end
+
+  def iteration_count=(new_value)
+    $expected_attrs['vault-options']["ITERATION_COUNT"] = "#{new_value}"
+  end
+
+  def build_params_for_create
+    debug "Create Hash from parameters type"
+    params = "vault-options={\"ENC_FILE_DIR\"=>\"#{@resource[:enc_file_dir]}\", \
+      \"KEYSTORE_URL\"=>\"#{@resource[:keystore_url]}\",\
+      \"KEYSTORE_PASSWORD\"=>\"#{@resource[:keystore_password]}\",\
+      \"KEYSTORE_ALIAS\"=>\"#{@resource[:keystore_alias]}\",\
+      \"SALT\"=>\"#{@resource[:salt]}\",\
+      \"ITERATION_COUNT\"=>\"#{@resource[:iteration_count]}\"\
+    }"
+    return params
+  end
+
 end

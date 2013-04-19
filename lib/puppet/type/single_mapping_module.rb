@@ -53,14 +53,24 @@ Puppet::Type.newtype(:single_mapping_module) do
 
   newproperty(:module_options) do
     desc "A map in the form comma separatated \
-        {\"key1\" => \"value1\", \"key2\" => \"value2\"} \
-      options to pass the module-options of mapping-module"
+          {\"key1\" => \"value1\", \"key2\" => \"value2\"} \
+          options to pass the module-options of mapping-module"
     validate do |value|
       unless value.kind_of? Hash
-      raise ArgumentError, "module_options must be a map in the form \
-      comma separatated {\"key1\" => \"value1\", \"key2\" => \"value2\"})\
-      options to pass the module-options of mapping-module"
+        raise ArgumentError, "module_options must be a map in the form \
+              comma separatated {\"key1\" => \"value1\", \"key2\" => \"value2\"})\
+              options to pass the module-options of mapping-module"
       end
+    end
+
+    # Redefine this methods to refine comparison of current value and new value
+    def should_to_s(newvalue)
+      newvalue.inspect
+    end
+    def is_to_s(currentvalue)
+      currentvalue.inspect
     end
   end
 end
+
+

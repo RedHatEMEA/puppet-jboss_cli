@@ -1,4 +1,5 @@
 require 'pathname'
+require 'enumerator'
 require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'puppet_x/jboss/common'
 
 Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
@@ -8,55 +9,39 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
   confine :osfamily => :redhat
 
   def module_options
+    debug "Getting current value for module-options property"
     actual_attributes = {}
     path = "/subsystem=security/security-domain=#{@resource[:security_domain_name]}/mapping=classic"
     operation = "read-attribute"
     params = "name=mapping-modules"
     output = PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
+    # We need some replacements to make the ouput parseable by MultiJson 
+    output = output.gsub('"module-options" => [', '"module-options" => {').gsub(']', '}').gsub('}}', '}]')
+    output = output.gsub('(', '').gsub(')', '')
 
-    output.split("\n").collect do |line|
-      val = line.delete(" ")
-      if ! ((val.start_with?("\"outcome\"")or
-             val.start_with?("\"result\"")  or
-             val.start_with?("\"type\"")  or
-             val.start_with?("\"code\"")  or
-             val.start_with?("\"module\"")  or
-             val.start_with?("\"module-options\"")  or
-             val.start_with?("[{")          or
-             val.start_with?("}]")          or
-             val.start_with?("[")           or
-             val.start_with?("]")           or
-             val.start_with?("{")           or
-             val.start_with?("}")           or
-             val.start_with?("\"response-headers\"")))
-             val = val.split("=>")
-             mykey = val[0].delete("\"")
-             mykey = mykey.gsub(".", "-")
-             myval = val[1].delete("\"")
-             myval = myval.chomp(",")
-             actual_attributes.store(mykey, myval)
-      end
-    end
-    return actual_attributes
+    # The returned result is interpreted as an array containing a map !!
+    map = PuppetX::Jboss.parse_cli_result_as_map(output)
+
+    Puppet.info( "Current value for module-options is #{map.inspect} ")
+    return map['module-options']
   end
 
   def module_options=(new_value)
-    Puppet.debug "Update existing login-modules properties"
+    Puppet.debug "Updating existing login-modules properties with #{new_value}"
     path = "/subsystem=security/security-domain=#{@resource[:security_domain_name]}/mapping=classic"
     operation = "write-attribute"
     params = "name=mapping-modules,value=[ {\
               \"type\"           =>\"#{@resource[:type]}\", \
               \"code\"           =>\"#{@resource[:code]}\", \
               \"module\"         =>\"#{@resource[:module]}\", \
-              \"module-options\" =>  #{to_module_options()} \
+              \"module-options\" =>  #{to_module_options(new_value)} \
              }]"
     PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
-    notice "Updating JAAS Security Domain #{@resource[:name]}"
+    notice "Updated JAAS Security Domain #{@resource[:name]} with #{new_value}"
   end
 
-  def to_module_options
+  def to_module_options(module_options)
     debug "Create Hash from parameters type"
-    module_options = @resource[:module_options]
     params = "{ "
     module_options.keys.sort.each do |key|
       params = "#{params} \"#{key}\" => \"#{module_options[key]}\", "
@@ -75,7 +60,7 @@ Puppet::Type.type(:single_mapping_module).provide(:single_mapping_module) do
                    \"type\"           =>\"#{@resource[:type]}\", \
                    \"code\"           =>\"#{@resource[:code]}\", \
                    \"module\"         =>\"#{@resource[:module]}\", \
-                   \"module-options\" =>  #{to_module_options()} \
+                   \"module-options\" =>  #{to_module_options(@resource[:module_options])} \
                    }]"
     PuppetX::Jboss.run_cli_command(@resource[:engine_path], @resource[:nic], path, operation, params)
     debug "Creation of mapping module completed"

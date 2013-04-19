@@ -13,40 +13,113 @@ Puppet::Type.newtype(:ssl_connector_extension) do
 
   newparam(:engine_path) do
     desc "The JBoss Engine path."
-    isrequired
   end
 
   newparam(:nic) do
     desc "The Network Interface attached to the instance."
-    isrequired
   end
 
   newparam(:connector_name) do
     desc "The connector's name."
-    isrequired
-  end
-
-  newproperty(:protocol) do
-    desc "The SSL protocol used on this connector and its version."
-    defaultto("ALL")
-    newvalues("ALL", "SSLv2","SSLv3","SSLv2+,SSLv3","TLSv1")
   end
 
   newproperty(:certificate_key_file) do
-    desc "The keystore containing the server certificate to be loaded.
-                      The storepass and keypass for the keystore file must be identical."
-    isrequired
+    desc "A String, which defines the path of the servers's keystore. \
+      This keystore contains the server's private key."
+
+    defaultto(:nil)
   end
 
   newproperty(:key_alias) do
-    desc "The alias in the keystore to be used."
+    desc "A String, which points to an alias in the keystore refered by \
+      the attribute 'certificate_key_file'. \
+      This alias contains a private key entry. \
+      This private key is the server's private key."
+
     defaultto("jboss")
-    isrequired
   end
 
   newproperty(:password) do
-    desc "The keystore password of the keystore refered by certificate_key_file. \
-              The storepass and keypass for the keystore file must be identical."
-    isrequired
+    desc "A String, which is the password of the keystore refered by the 
+      attribute 'certificate_key_file'. \
+      /!\ The keystore's storepass must be equal to the alias's keypass."
+
+    defaultto(:nil)
   end
+
+  newproperty(:keystore_type) do
+    desc "A String, which defines the keystore type. \
+      Must be one of 'JKS', 'PKCS12'."
+
+    defaultto(:nil)
+    newvalues("JKS", "PKCS12", :nil)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return value if value == :nil
+      return String(value)
+    end
+  end
+
+  newproperty(:protocol) do
+    desc "A String, which defines supported protocol. \
+      Comma separeted values."
+
+    defaultto("ALL")
+    newvalues("ALL", "SSLv2", "SSLv3", "SSLv2+,SSLv3", "TLSv1")
+    # Convert Raw data to Typed data
+    munge do |value|
+      return String(value)
+    end
+  end
+
+  newproperty(:cipher_suite) do
+    desc "A String, which defines supported ciphers. \
+      Comma separeted values."
+
+    defaultto(:nil)
+  end
+
+  newproperty(:verify_client) do
+    desc "A String, which indicate if this ssl-connector will enable \
+      client-certificate authentication. \
+      Should contains one of 'true, 'false', or 'ask'."
+
+    defaultto(:nil)
+    newvalues("true", "false", "ask", :nil)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return value if value == :nil
+      return String(value)
+    end
+  end
+
+  newproperty(:ca_certificate_file) do
+    desc "A String, which defines the path of the servers's truststore. \
+      This truststore store contains the certificate of the Certificate \
+      Authorities who signed the client certificates."
+
+    defaultto(:nil)
+  end
+
+  newproperty(:truststore_type) do
+    desc "A String, which defines the truststore type. \
+      Must be one of 'JKS', 'PKCS12'."
+
+    defaultto(:nil)
+    newvalues("JKS", "PKCS12", :nil)
+    # Convert Raw data to Typed data
+    munge do |value|
+      return value if value == :nil
+      return String(value)
+    end
+  end
+
+  validate do
+    errors = []
+    errors.push("Attribute 'engine_path' is mandatory !") if !@parameters.include?(:engine_path)
+    errors.push("Attribute 'nic' is mandatory !") if !@parameters.include?(:nic)
+    errors.push( "Attribute 'connector_name' is mandatory !") if !@parameters.include?(:connector_name)
+    raise Puppet::Error, errors.inspect if !errors.empty?
+  end
+
 end

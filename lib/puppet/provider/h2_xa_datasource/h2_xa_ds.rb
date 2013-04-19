@@ -7,417 +7,216 @@ Puppet::Type.type(:h2_xa_datasource).provide(:h2_xa_ds) do
 
   confine :osfamily => :redhat
 
-  def create
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    no_tx_separate_pool = "no-tx-separate-pool=#{@resource[:no_tx_separate_pool]}"
-    min_pool_size = "min-pool-size=#{@resource[:min_pool_size]}"
-    max_pool_size = "max-pool-size=#{@resource[:max_pool_size]}"
-    idle_timeout_minutes = "idle-timeout-minutes=#{@resource[:idle_timeout_minutes]}"
-    query_timeout = "query-timeout=#{@resource[:query_timeout]}"
-    jndi_name = "jndi-name=#{@resource[:jndi_name]}"
-    dri_name = "driver-name=#{@resource[:driver_name]}"
-    user = "user-name=#{@resource[:user]}"
-    pwd = "password=#{@resource[:password]}"
-    background_validation = "background-validation=#{@resource[:background_validation]}"
-    url = "xa-datasource-properties=URL:add\(value=#{@resource[:url]}\)"
-
-    cmd1 = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:add\(#{no_tx_separate_pool},#{jndi_name},#{dri_name},#{user},#{pwd},#{background_validation},#{min_pool_size},#{max_pool_size},#{idle_timeout_minutes},#{query_timeout}\)"
-    ]
-
-    cmd2 = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}/#{url}"
-    ]
-
-    if jdbc_driver?("#{@resource[:driver_name]}")
-      debug "Creating H2 XA Datasource"
-      PuppetX::Jboss.run_command(cmd1)
-      PuppetX::Jboss.run_command(cmd2)
-    else
-      fail "No #{@resource[:driver_name]} JDBC Driver found!"
-    end
+  def self.instances
+    return []
   end
 
-  def destroy
-    debug "Test Destroy def"
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:remove"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+  def init()
+    $attrs_to_write = {}
+    $attrs_to_add = {}
+    $current_attrs = {}
+    $engine_path = @resource[:engine_path]
+    $nic = @resource[:nic]
+    $path = "/subsystem=datasources/xa-data-source=#{@resource[:ds_name]}"
   end
 
   def exists?
-    debug "Debug exists? def"
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-resource"
-    ]
+    init()
     begin
-      PuppetX::Jboss.run_command(cmd)
+      $current_attrs = PuppetX::Jboss.exec_command($engine_path, $nic, $path, "read-resource", "recursive=true")
+      return true
     rescue Puppet::ExecutionFailure => e
-      false
+      return false
     end
   end
 
-  def jdbc_driver?(driver)
-    debug "IS JDBC DRIVER EXITS ?"
-    subsys = "/subsystem=datasources"
-    jdbc_dri = "jdbc-driver=#{driver}"
+  def create
+    PuppetX::Jboss.add_attributes($engine_path, $nic, $path, $current_attrs, build_attrs_to_add())
+  end
 
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{jdbc_dri}:read-resource"
-    ]
+  def destroy
+    PuppetX::Jboss.exec_command($engine_path, $nic, $path, "remove")
+  end
+
+  def flush
+    PuppetX::Jboss.write_attributes($engine_path, $nic, $path, $current_attrs, $attrs_to_write)
+    PuppetX::Jboss.add_attributes($engine_path, $nic, $path, $current_attrs, $attrs_to_add)
+  end
+
+  def build_attrs_to_add()
+    fail("Attribute 'dirver_name' is necessary for the 'create' operation to succeed.") if @resource[:driver_name] == :nil
+    fail("A 'JDBC Driver' called '#{@resource[:driver_name]}' is necessary for the create operation to succeed.") if jdbc_driver_exists?(@resource[:driver_name]) == false
+    fail("Attribute 'jndi_name' is necessary for the 'create' operation to succeed.") if @resource[:jndi_name] == :nil
+    fail("Attribute 'connection_url' is necessary for the 'create' operation to succeed.") if @resource[:connection_url] == :nil
+    fail("Attribute 'user_name' is necessary for the 'create' operation to succeed.") if @resource[:user_name] == :nil
+    fail("Attribute 'password' is necessary for the 'create' operation to succeed.") if @resource[:password] == :nil
+
+    to_add = {}
+    to_add["jndi-name"] = @resource[:jndi_name]
+    to_add["driver-name"] = @resource[:driver_name]
+    to_add["user-name"] = @resource[:user_name]
+    to_add["password"] = @resource[:password]
+    to_add["min-pool-size"] = @resource[:min_pool_size] if @resource[:min_pool_size] != nil
+    to_add["max-pool-size"] = @resource[:max_pool_size] if @resource[:max_pool_size] != nil
+    to_add["idle-timeout-minutes"] = @resource[:idle_timeout_minutes] if @resource[:idle_timeout_minutes] != nil
+    to_add["query-timeout"] = @resource[:query_timeout] if @resource[:query_timeout] != nil
+    to_add["background-validation"] = @resource[:background_validation] if @resource[:background_validation] != nil
+    to_add["valid-connection-checker-class-name"] = @resource[:valid_connection_checker_class_name] if @resource[:valid_connection_checker_class_name] != nil
+    to_add["no-tx-separate-pool"] = @resource[:no_tx_separate_pool]
+    to_add["pool-prefill"] = @resource[:pool_prefill] if @resource[:pool_prefill] != nil
+    to_add["pool-use-strict-min"] = @resource[:pool_use_strict_min] if @resource[:pool_use_strict_min] != nil
+    to_add["prepared-statements-cache-size"] = @resource[:prepared_statements_cache_size] if @resource[:prepared_statements_cache_size] != nil
+    to_add["share-prepared-statements"] = @resource[:share_prepared_statements] if @resource[:share_prepared_statements] != nil
+    to_add["use-java-context"] = @resource[:use_java_context] if @resource[:use_java_context] != nil
+    to_add["xa-datasource-properties"] = {}
+    to_add["xa-datasource-properties"]["URL"] = {}
+    to_add["xa-datasource-properties"]["URL"]["value"] = @resource[:connection_url]
+
+    return to_add
+  end
+
+  def jdbc_driver_exists?(driver)
+    path = "/subsystem=datasources/jdbc-driver=#{driver}"
+    operation = "read-resource"
     begin
-      PuppetX::Jboss.run_command(cmd)
+      PuppetX::Jboss.exec_command($engine_path, $nic, path, operation)
+      return true
     rescue Puppet::ExecutionFailure => e
-      false
+      return false
     end
   end
 
-  def user
-    debug "USER GETTER"
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=user-name\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
+  def jndi_name
+    return $current_attrs["jndi-name"]
   end
 
-  def user=(new_value)
-    debug "USER SETTER"
-    current_value = user()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=user-name,value=#{new_value}\)"
-      ]
-      PuppetX::Jboss.run_command(cmd)
-    end
-  end
-
-  def url
-    debug "URL GETTER"
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    url = "xa-datasource-properties=URL:read-attribute\(name=value\)"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}/#{url}"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
-  end
-
-  def url=(new_value)
-    debug "URL SETTER"
-    current_value = url()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    url_add = "xa-datasource-properties=URL:add\(value=#{new_value}\)"
-    url_del = "xa-datasource-properties=URL:remove"
-
-    if current_value != new_value
-      if current_value != "undefined"
-        cmd = [
-          "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-          "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-          "--command=#{subsys}/#{ds}/#{url_del}"
-        ]
-        PuppetX::Jboss.run_command(cmd)
-      end
-      cmd2 = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}/#{url_add}"
-      ]
-      PuppetX::Jboss.run_command(cmd2)
-    end
-  end
-
-  def background_validation
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "background-validation"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
-  end
-
-  def background_validation=(new_value)
-    current_value = background_validation()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "background-validation"
-
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
-      ]
-      PuppetX::Jboss.run_command(cmd)
-    end
+  def jndi_name=(new_value)
+    $attrs_to_write["jndi-name"] = new_value
   end
 
   def driver_name
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "driver-name"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
+    return $current_attrs["driver-name"]
   end
 
   def driver_name=(new_value)
-    current_value = driver_name()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "driver-name"
+    fail("A 'JDBC Driver' called '#{new_value}' is necessary for the create operation to succeed.") if jdbc_driver_exists?(new_value) == false
+    $attrs_to_write["driver-name"] = new_value
+  end
 
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
-      ]
-      PuppetX::Jboss.run_command(cmd)
-    end
+  def connection_url
+    return :nil if $current_attrs["xa-datasource-properties"] == :nil
+    return :nil if $current_attrs["xa-datasource-properties"]["URL"] == :nil
+    return $current_attrs["xa-datasource-properties"]["URL"]["value"]
+  end
+
+  def connection_url=(new_value)
+    $attrs_to_add["xa-datasource-properties"] = {} if $attrs_to_add["xa-datasource-properties"] == nil
+    $attrs_to_add["xa-datasource-properties"]["URL"] = {} if $attrs_to_add["xa-datasource-properties"]["URL"] == nil
+    $attrs_to_add["xa-datasource-properties"]["URL"]["value"] = new_value
+  end
+
+  def user_name
+    return $current_attrs["user-name"]
+  end
+
+  def user_name=(new_value)
+    $attrs_to_write["user-name"] = new_value
   end
 
   def min_pool_size
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "min-pool-size"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
-    ]
-
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
+    return $current_attrs["min-pool-size"]
   end
 
   def min_pool_size=(new_value)
-    current_value = min_pool_size()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "min-pool-size"
-
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
-      ]
-
-      PuppetX::Jboss.run_command(cmd)
-    end
+    $attrs_to_write["min-pool-size"] = new_value
   end
 
   def max_pool_size
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "max-pool-size"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
-    ]
-
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
+    return $current_attrs["max-pool-size"]
   end
 
   def max_pool_size=(new_value)
-    current_value = max_pool_size()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "max-pool-size"
-
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
-      ]
-
-      PuppetX::Jboss.run_command(cmd)
-    end
+    $attrs_to_write["max-pool-size"] = new_value
   end
 
-  def query_timeout
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "query-timeout"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
-    ]
-
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
+  def pool_prefill
+    return $current_attrs["pool-prefill"]
   end
 
-  def query_timeout=(new_value)
-    current_value = query_timeout()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "query-timeout"
+  def pool_prefill=(new_value)
+    $attrs_to_write["pool-prefill"] = new_value
+  end
 
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
-      ]
+  def pool_use_strict_min
+    return $current_attrs["pool-use-strict-min"]
+  end
 
-      PuppetX::Jboss.run_command(cmd)
-    end
+  def pool_use_strict_min=(new_value)
+    $attrs_to_write["pool-use-strict-min"] = new_value
   end
 
   def idle_timeout_minutes
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "idle-timeout-minutes"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{ds}:read-attribute\(name=#{attr}\)"
-    ]
-
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\",")
-       end
-    end
-    return val
+    return $current_attrs["idle-timeout-minutes"]
   end
 
   def idle_timeout_minutes=(new_value)
-    current_value = idle_timeout_minutes()
-    subsys = "/subsystem=datasources"
-    ds = "xa-data-source=#{@resource[:ds_name]}"
-    attr = "idle-timeout-minutes"
-
-    if current_value != new_value
-      cmd = [
-        "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-        "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-        "--command=#{subsys}/#{ds}:write-attribute\(name=#{attr},value=\"#{new_value}\"\)"
-      ]
-
-      PuppetX::Jboss.run_command(cmd)
-    end
+    $attrs_to_write["idle-timeout-minutes"] = new_value
   end
+
+  def query_timeout
+    return $current_attrs["query-timeout"]
+  end
+
+  def query_timeout=(new_value)
+    $attrs_to_write["query-timeout"] = new_value
+  end
+
+  def prepared_statements_cache_size
+    return $current_attrs["prepared-statements-cache-size"]
+  end
+
+  def prepared_statements_cache_size=(new_value)
+    $attrs_to_write["prepared-statements-cache-size"] = new_value
+  end
+
+  def share_prepared_statements
+    return $current_attrs["share-prepared-statements"]
+  end
+
+  def share_prepared_statements=(new_value)
+    $attrs_to_write["share-prepared-statements"] = new_value
+  end
+
+  def background_validation
+    return $current_attrs["background-validation"]
+  end
+
+  def background_validation=(new_value)
+    $attrs_to_write["background-validation"] = new_value
+  end
+
+  def use_java_context
+    return $current_attrs["use-java-context"]
+  end
+
+  def use_java_context=(new_value)
+    $attrs_to_write["use-java-context"] = new_value
+  end
+
+  def valid_connection_checker_class_name
+    return $current_attrs["valid-connection-checker-class-name"]
+  end
+
+  def valid_connection_checker_class_name=(new_value)
+    $attrs_to_write["valid-connection-checker-class-name"] = new_value
+  end
+
+  def no_tx_separate_pool
+    return $current_attrs["no-tx-separate-pool"]
+  end
+
+  def no_tx_separate_pool=(new_value)
+    $attrs_to_write["no-tx-separate-pool"] = new_value
+  end
+
 end

@@ -1,21 +1,10 @@
-# == Comands and utils:  Contain methods  often used in our custom providers.
-#
-#
-# [*namevar*]
-#   Ce paramètre est toujours composé par le nom de l'utilisateur d'instance
-#   du nodeid sépar© par un '-'. Ex: i21654m-node
-#
-# [*ensure*]
-#   Ce paramètre permet de gérer l'installation ou la déinstallation
-#   l'instance. Les valeurs possibles sont 'present' ou 'absent'.
-#
-#   - Valeur par défaut: 'present
-#
+# == Comands and utils:  Contain methods often used in our custom providers.
 
 require 'pathname'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'lib/puppet_x/jboss/flathash'
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'lib/puppet_x/jboss/unorderedarray'
 require Pathname.new(__FILE__).dirname.expand_path
-require 'multi_json'
-
+require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'lib/puppet_x/jboss/clisession'
 
 module PuppetX::Jboss
   def self.ip_instance(nic)
@@ -23,166 +12,369 @@ module PuppetX::Jboss
     if fact_nic_name.empty? or Facter[fact_nic_name].nil?
       fail("Please verify if the network interface #{nic} exists !")
     end
-    ip_instance = Facter.value(fact_nic_name) if !Facter[fact_nic_name].nil?
-    return ip_instance
+    return Facter.value(fact_nic_name)
   end
 
-  # The Puppet::Util::execute method is deprecated in puppet 3.0 and is moving
-  # to Puppet::Util::Execution.execute.
   def self.run_command(cmd)
-    if Puppet::Util::Execution.respond_to?(:execute)
-      exec_method = Puppet::Util::Execution.method(:execute)
-    else
-      exec_method = Puppet::Util.method(:execute)
-    end
-    exec_method.call(cmd)
+    # CliSession handles a cli session cache. A session is identified by the
+    # engine path, the nic and the '-c' modifier which are all passed in this
+    # array as the first 3 values. cmd[3] contains the CLI command
+    # TODO This has been done for legacy code compatibility reasons, we could
+    # probably handled it with 3+1 params instead.
+    session = CliSession.get_instance(cmd[0..2])
+    result = session.run(cmd[3])
+    return result
   end
 
-  #  Run a JBoss CLI command
+  # Run a JBoss CLI command
   #
   # [*engine_path*]
-  #  The JBoss EAP 6 engine path. Used to locate the jboss-cli.sh script usually
-  #  found under bin/ directory.
+  #   A String, which contains the JBoss EAP 6 engine path.
+  #   Used to locate the jboss-cli.sh script usually found under bin/ directory.
   #
   # [*nic*]
-  #   The name of the Network Interface Card which holds the IP adress of the
-  #   JBoss instance on which we  want to run command against.
+  #   A String, which is the name of the Network Interface Card which holds
+  #   the IP adress of the JBoss instance on which we want to run command
+  #   against.
   #
   # [*path*]
-  #   The attribute path following the CLI syntax.
+  #   A String, which is the CLI path following the CLI syntax.
+  #   ex : "/subsystem=logging/logger=tartenpion"
   #
   # [*operation*]
-  #   The CLI operation name: Usually one of 'add', 'read-resource', 'remove',
-  #   'write-attribute'
+  #   A String, which is the CLI operation name to execute.
+  #   ex : "add", "remove", "read-resource", "write-attribute",
+  #   "undefine-attribute"
   #
-  #   [*params*]
-  #     The parameters to use whit this operation and this path. Can be an empty
-  #     string.
+  # [*params*]
+  #   A String, which contains the CLI parameters to use whith the given CLI
+  #   path and CLI operation name.
+  #   Can be an empty string if the given CLI operation doesn't require any
+  #   parameters.
   #
-  def self.run_cli_command(engine_path, nic, path, operation, params)
-    cmd = [
-      "#{engine_path}/bin/jboss-cli.sh", "-c",
-      "--controller=#{ip_instance("#{nic}")}", "--command=#{path}:#{operation}\(#{params}\)"
-    ]
+  def self.run_cli_command(engine_path, nic, path, operation, params='')
+    cmd = [ "#{engine_path}/bin/jboss-cli.sh", "-c", "--controller=#{ip_instance("#{nic}")}", "#{path}:#{operation}\(#{params}\)" ]
     run_command( cmd )
   end
 
-  #  Run multiple JBoss CLI commands
+  # Run multiple JBoss CLI command.
   #
   # [*engine_path*]
-  #  The JBoss EAP 6 engine path. Used to locate the jboss-cli.sh script usually
-  #  found under bin/ directory.
+  #   A String, which contains the JBoss EAP 6 engine path.
+  #   Used to locate the jboss-cli.sh script usually found under bin/ directory.
   #
   # [*nic*]
-  #   The name of the Network Interface Card which holds the IP adress of the
-  #   JBoss instance on which we  want to run command against.
+  #   A String, which is the name of the Network Interface Card which holds
+  #   the IP adress of the JBoss instance on which we want to run command
+  #   against.
   #
   # [*path*]
   #   The attribute path following the CLI syntax.
   #
   # [*commands*]
-  #  A string containing the full commands. Each command must be separated by a
-  #  comma. Trailing  comma is removed.
+  #   An Array, where each cell is a String, which contains a JBoss CLI command
+  #   (CLI path + CLI operation name + CLI parameters).
   #
   def self.run_cli_commands(engine_path, nic, commands=[])
-    cmds = ""
-    commands.each do |command|
-      cmds += "#{command},"
+    if commands == nil or commands.empty?()
+      return
     end
-    cmds = cmds.chomp(",")
-
-    if product_version(engine_path, nic).start_with? "6.0.0.GA"
-      ### JBoss CLI --commands attribute don't work with comma
-      ### separated - Bug AS7-4017. Fixed on EAP 6.0.1
-      commands.each do |line|
-      cmd = [
-          "#{engine_path}/bin/jboss-cli.sh", "-c",
-          "--controller=#{ip_instance("#{nic}")}", "--command=#{line}"
-      ]
-      begin
-        run_command(cmd)
-      rescue Puppet::ExecutionFailure => e
-        Puppet.debug(e)
-      end
-      end
-    else
-      cmd = [
-        "#{engine_path}/bin/jboss-cli.sh", "-c",
-        "--controller=#{ip_instance("#{nic}")}", "--commands=\"#{cmds}\""
-      ]
-      begin
-        run_command(cmd)
-      rescue Puppet::ExecutionFailure => e
-        Puppet.debug(e)
-      end
+    commands.each do |line|
+      cmd = [ "#{engine_path}/bin/jboss-cli.sh", "-c", "--controller=#{ip_instance("#{nic}")}", "#{line}" ]
+        begin
+          run_command(cmd)
+        rescue Puppet::ExecutionFailure => e
+          Puppet.debug(e)
+        end
     end
   end
 
-  # Returns the product-version
-  def self.product_version(engine_path, nic)
-    product_version = "read-attribute --name=product-version"
-    cmd = [
-      "#{engine_path}/bin/jboss-cli.sh", "-c",
-      "--controller=#{ip_instance("#{nic}")}", "--command=#{product_version}"
-    ]
+  # Converts the given Typed value into a the JBoss CLI format.
+  # Currently, supports boolean (:true/:false), Numbers, String, Hash  and :nil.
+  # Ex :
+  #   - the Boolean :true will be replaced by 'true' ;
+  #   - the Number 1234 will be replace by '1234' ;
+  #   - the String "1234" will be replaced by '"12345"' ;
+  #   - the Hash {:key1=>"value1", :key2=>int2} will be replaced by '(key1="value1", key2=int2)' ;
+  #   - the null value :nil will be replaced by 'undefined' ;
+  #
+  # TODO : should escape " in string ?
+  # TODO : special characeter conversion ?
+  #
+  # [*output*]
+  #   A String, which contains data in a format which is compatible with the
+  #   JBoss CLI format.
+  #
+  def self.to_cli_value(value)
+    case value
+    when :nil
+      return 'undefined'
+    when :false
+      return 'false'
+    when :true
+      return 'true'
+    when Fixnum
+      return "#{value}"
+    when FlatHash
+      return value.to_s
+    when Array
+      return array_to_string(value)
+    when Hash
+      raise "CLI values must be set inside a FlatHash instead of Hash to be converted to their CLI equivalent"
+    else
+      return "\"#{value}\""
+    end
+  end
+
+  def self.array_to_string(new_value)
+    result = ""
+    new_value.each do |value|
+      result += to_cli_value(value) + ","
+    end
+    return result = "[" + result.chomp(",") + "]"
+  end
+
+  def self.to_cli_boolean(value)
+    case value
+    when true, "true", :true, 'true'
+      return :true
+    else
+      return :false
+    end
+  end
+
+  def self.to_boolean(value)
+    case value
+    when true, "true", :true, 'true'
+      return true
+    else
+      return false
+    end
+  end
+
+  #  Parses CLI command output to extract a map of results.
+  #
+  # [*output*]
+  #   A Hash containing a JBoss CLI command output, where each entry
+  #   is one of :
+  #   - "key" => :nil if the key is undefined ;
+  #   - "key" => "String" (ex : "key" => "a string") ;
+  #   - "key" => Integer (ex : "key" => 12345678) ;
+  #   - "key" => :true / :false (ex : "key" => :false) ;
+  #   - "key" => Hash ;
+  #   - "key" => Array (TODO)
+  #
+  def self.parse_cli_result_as_map(output)
+    # Load '/opt/puppet/lib/ruby/gems/1.8/gems/multi_json-1.7.1/lib/multi_json.rb'
+    require 'multi_json'
+    # Removes trailing 'L' on Long CLI values to allow mutli_json to parse them
+    # \1 is the group matching [0-9]+
+    # \2 is the group matching the EOL or ','
+    output = output.gsub(/=> ([0-9]+)L(,|\s*\})/,'=> \1\2')
+    # Replace Undefined CLI values by a Magic String, so that multi_json can parse it.
+    # Note that the method 'to_strongly_typed_hash will' will later convert our
+    # Magic String to :nil.
+    output = output.gsub(/=> undefined(,|\s*\})/,'=> "__undefined__"\1')
+    # Replaces
+    #    "module-options" => [
+    #      ("debug" => "true"),
+    #      ("doNotPrompt" => "true")
+    #    ]
+    # into
+    #    "module-options" => {
+    #      "debug" => "true",
+    #      "doNotPrompt" => "true"
+    #    }
+    #
+    # Matches - on multiple lines - Arrays in the form '[ entry(,entry)* ]', where entry
+    # is '("key"=>"value")', and replace them by '{ entry(,entry)* }'
+    output = output.gsub(/\[(\s*\([^\(\)\[\]]*\)(,\s*\([^\(\)\[\]]*\))*\s*)\]/m) do
+      array_group = $1
+      # Matches entries in the form '("key"=>"value")' and replace them by '"key"=>"value"'
+      result = array_group.gsub(/\(([^\(\)]*)\)/) do
+        key_group = $1
+      end
+      "{" + result + "}"
+    end
+
+    # Failure description is on several lines: We put in one line
+    failure_description = output.gsub(/.*("failure-description" => ".*[^\\]",).*/m,'\1')
+    oneline_failure_description = failure_description.gsub(/[\r\n]/,'')
+    output = output.gsub(failure_description, oneline_failure_description)
+
+    output = output.gsub('=>',':')
+    hash = MultiJson.decode(output)
+    outcome = hash['outcome']
+    # If the outcome is 'failed', we raise an ExecutionFailure exception which
+    # is handled in exists?() methods of JBoss_cli providers
+    if( outcome == 'failed' )
+      raise Puppet::ExecutionFailure.new(hash['failure-description']) 
+    end
+    return to_strongly_typed_hash(hash['result'])
+  end
+
+  # Convert cli raw values in the given hash to strongly typed values.
+  # If the value is an Hash, convert it (recurs call).
+  #
+  # [*output*]
+  #   A Hash containing a JBoss CLI command output, where each entry
+  #   is one of :
+  #   - "key" => :nil if the key is undefined ;
+  #   - "key" => "String" (ex : "key" => "a string") ;
+  #   - "key" => Integer (ex : "key" => 12345678) ;
+  #   - "key" => :true / :false (ex : "key" => :false) ;
+  #   - "key" => Hashi ;
+  #   - "key" => Array (TODO)
+  #
+  def self.to_strongly_typed_hash(cli_hash)
+    if cli_hash.nil?
+      return :nil
+    end
+    cli_hash.each do |key, value|
+      case value
+      when "__undefined__"
+        cli_hash[key] = :nil
+      when true
+        cli_hash[key] = :true
+      when false
+        cli_hash[key] = :false
+      when Hash
+        cli_hash[key] = to_strongly_typed_hash(value)
+      end
+    end
+    return cli_hash
+  end
+
+  # Run the given JBoss CLI command on the given JBoss instance and parses CLI
+  # command output to extract a map of results.
+  #
+  # [*engine_path*]
+  #   A String, which contains the JBoss EAP 6 engine path.
+  #   Used to locate the jboss-cli.sh script usually found under bin/ directory.
+  #
+  # [*nic*]
+  #   A String, which is the name of the Network Interface Card which holds
+  #   the IP adress of the JBoss instance on which we want to run command
+  #   against.
+  #
+  # [*path*]
+  #   A String, which is the CLI path following the CLI syntax.
+  #   ex : "/subsystem=logging/logger=tartenpion"
+  #
+  # [*operation*]
+  #   A String, which is the CLI operation name to execute.
+  #   ex : "add", "remove", "read-resource", "write-attribute",
+  #   "undefine-attribute"
+  #
+  # [*params*]
+  #   A String, which contains the CLI parameters to use whith the given CLI
+  #   path and CLI operation name.
+  #   Can be an empty string if the given CLI operation doesn't require any
+  #   parameters.
+  #
+  # [*output*]
+  #   A Hash containing a JBoss CLI command output, where each entry
+  #   is one of :
+  #   - "key" => nil if the key is undefined ;
+  #   - "key" => "String" (ex : "key" => "a string") ;
+  #   - "key" => Integer (ex : "key" => 12345678) ;
+  #   - "key" => :true / :false (ex : "key" => :false) ;
+  #   - "key" => Hash
+  #
+  def self.exec_command(engine_path, nic, path, operation, params='')
+    output = run_cli_command(engine_path, nic, path, operation, params)
+    return parse_cli_result_as_map(output)
+  end
+
+  def self.write_attributes(engine_path, nic, path, current_attrs={}, attrs_to_write={})
+    update_attributes(engine_path, nic, path, current_attrs, attrs_to_write)
+  end
+
+  def self.add_attributes(engine_path, nic, path, current_attrs=nil, attrs_to_write={})
+    if attrs_to_write == nil
+      return
+    end
+    Puppet.debug("Adding attributes --- Current attributes : #{current_attrs.inspect()}")
+    Puppet.debug("Adding attributes --- Expected attributes : #{attrs_to_write.inspect()}")
+
+    # Build the 'add' command with each key/value of the given hash
+    # (Exclude Nested Hasp, which will be treated later)
+    params = ""
+    attrs_to_write.each do |key, value|
+      if value.is_a?(Hash) and !value.is_a?(FlatHash)
+        next
+      elsif value != :nil
+        params += "," if !params.empty?()
+        params += "#{key}=#{to_cli_value(value)}"
+      end
+    end
+    # Remove it first if specified
     begin
-      return run_command(cmd)
+      run_cli_command(engine_path, nic, path, "remove") if !params.empty? and current_attrs != nil and !current_attrs.empty?()
     rescue Puppet::ExecutionFailure => e
       Puppet.debug(e)
     end
-  end
+    # Run the 'add' command if not empty
+    begin
+      run_cli_command(engine_path, nic, path, "add", params) if !params.empty? or (params.empty? and (current_attrs == nil or current_attrs.empty?))
+    rescue Puppet::ExecutionFailure => e
+      Puppet.debug(e)
+    end
 
-  # Parses CLI command output to extract a single result.
-  #
-  # [*output*] A string containing a JBoss CLI command output with an entry
-  # "result" =>  "value" entry.
-  #
-  def self.parse_single_cli_result(output)
-    val = ''
-    output.split("\n").collect do |line|
-      if line.start_with?("    \"result\"")
-        val = line.strip
-        val = val.split(" => ")[1]
-        if  val.start_with?("\"")
-          val = val.sub("\"", "")
-        end
-        val = val.chomp(",")
-        # if val ends with ", it is removed, if not it is not (see chomp)
-        val = val.chomp("\"")
+    # Add Nested Hash
+    attrs_to_write.each do |nested_key, nested_value|
+      if nested_value.is_a?(Hash) and !nested_value.is_a?(FlatHash)
+        add_nested_hash(engine_path, nic, path, nested_key, current_attrs == nil ? nil : current_attrs[nested_key], nested_value)
       end
     end
-    return val
+  end
+
+  def self.add_nested_hash(engine_path, nic, path, nested_path, current_attrs={}, attrs_to_write={})
+    attrs_to_write.each do |key,value|
+      add_attributes(engine_path, nic, path+"/#{nested_path}=#{key}", current_attrs != nil ? current_attrs[key] : nil, value )
+    end
   end
 
 
-  # Parses CLI command output to extract a map of results.
+  # Write given attributes to the given JBoss instance using JBoss
+  # CLI commands.
+  # Perform a diff between current and expected attributes, and apply the
+  # delta.
   #
-  # [*output*] A string containing a JBoss CLI command output with an entry
-  # "result" =>  "value" entry.
+  # [*engine_path*]
+  #   A String, which contains the JBoss EAP 6 engine path.
+  #   Used to locate the jboss-cli.sh script usually found under bin/ directory.
   #
-  def self.parse_cli_result_as_map(output)
-    output = output.gsub('=>',':').gsub('undefined', '"undefined"')
-    return MultiJson.decode(output)['result']
-  end
-
-  #  Return the value pointed by path by browsing the map as a nested map (map
-  #  of maps).
-  #  If the path does not point to a valid value, input is returned or the first
-  #  valid node on the path
+  # [*nic*]
+  #   A String, which is the name of the Network Interface Card which holds
+  #   the IP adress of the JBoss instance on which we want to run command
+  #   against.
   #
-  def self.hash_path(input, path)
-    Puppet.debug( "Received path #{path}")
-    path = path.start_with?("/") ? path[1..-1] : path
-    map = input
-    final_node = ''
-    path.split("/").collect do |node|
-      final_node = node
-      if( map != nil )
-        map = map[node]
+  # [*path*]
+  #   A String, which is the CLI path following the CLI syntax.
+  #   ex : "/subsystem=logging/logger=tartenpion"
+  #
+  # [*current*]
+  #   A Hash, which contains the current attributes values.
+  #
+  # [*attrs_to_write*]
+  #   A Hash, which contains the expected attributes names/values.
+  #
+  def self.update_attributes(engine_path, nic, path, current_attrs={}, attrs_to_write={})
+    if attrs_to_write == nil or attrs_to_write.empty?()
+      return
+    end
+    Puppet.debug("Updating attributes --- Current attributes : #{current_attrs.inspect()}")
+    Puppet.debug("Updating attributes --- Expected attributes : #{attrs_to_write.inspect()}")
+    cmds = []
+    attrs_to_write.each do |key, value|
+      if value == :nil and current_attrs.has_key?(key) and current_attrs[key] != :nil
+        cmds  << path + ":" + "undefine-attribute" + "(name=#{key})"
+      elsif !current_attrs.has_key?(key) or current_attrs[key] != value
+        cmds << path + ":" + "write-attribute" + "(name=#{key},value=#{to_cli_value(value)})"
       end
     end
-    Puppet.debug( "Got value #{map} for key #{final_node}")
-    return map
+    run_cli_commands(engine_path, nic, cmds)
   end
 
 end

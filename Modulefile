@@ -1,5 +1,5 @@
 name 'puppet-jboss_cli'
-version '0.0.1'
+version '0.0.2'
 author 'Gael CHAMOULAUD'
 license 'Apache 2.0'
 project_page 'https://github.com/RedHatEMEA/puppet-jboss_cli'

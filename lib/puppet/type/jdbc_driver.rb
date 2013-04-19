@@ -17,25 +17,38 @@ Puppet::Type.newtype(:jdbc_driver) do
 
   newparam(:nic) do
     desc "The Network Interface attached to the instance."
-    isrequired
   end
 
   newparam(:driver_name) do
-    desc "The JDBC Driver name."
-
+    desc "The JDBC Driver name. Read-only."
   end
 
   newparam(:driver_module_name) do
-    desc "The JDBC Driver Module name."
+    desc "The JDBC Driver Module name. Read-only."
+  end
+
+  newparam(:driver_module_slot) do
+    desc "The JDBC Driver Module slot. Read-only."
+    defaultto(:nil)
   end
 
   newparam(:driver_class_name) do
-    desc "The JDBC Driver Class name."
+    desc "The JDBC Driver Class name. Read-only."
+    defaultto(:nil)
   end
 
   newparam(:driver_xa_datasource_class_name) do
-    desc "The JDBC Driver XA Datasource Class name."
+    desc "The JDBC Driver XA Datasource Class name. Read-only."
+    defaultto(:nil)
   end
 
+  validate do
+    errors = []
+    errors.push( "Attribute 'engine_path' is mandatory !" ) if !@parameters.include?(:engine_path)
+    errors.push( "Attribute 'nic' is mandatory !" ) if !@parameters.include?(:nic)
+    errors.push( "Attribute 'driver_name' is mandatory !" ) if !@parameters.include?(:driver_name)
+    errors.push( "Attribute 'driver_module_name' is mandatory !" ) if !@parameters.include?(:driver_module_name)
+    raise Puppet::Error, errors.inspect if !errors.empty?
+  end
 
 end

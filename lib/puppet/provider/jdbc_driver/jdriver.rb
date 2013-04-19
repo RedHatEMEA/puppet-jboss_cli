@@ -3,88 +3,48 @@ require Pathname.new(__FILE__).dirname.dirname.dirname.dirname.expand_path + 'pu
 
 Puppet::Type.type(:jdbc_driver).provide(:jdriver) do
   include PuppetX::Jboss
-  @doc = "Manages JDBC Driver for an instance with the jboss-cli.sh"
 
   confine :osfamily => :redhat
 
-  def create
-    subsys = "/subsystem=datasources"
-    jdbc_dri = "jdbc-driver=#{@resource[:driver_name]}"
-    dri_name = "driver-name=#{@resource[:driver_name]}"
-    dri_mod_name = "driver-module-name=#{@resource[:driver_module_name]}"
-    dri_cls_name = "driver-class-name=#{@resource[:driver_class_name]}"
-    dri_xa_ds_cls_name = "driver-xa-datasource-class-name=#{@resource[:driver_xa_datasource_class_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{jdbc_dri}:add\(#{dri_name},#{dri_mod_name},#{dri_cls_name},#{dri_xa_ds_cls_name}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+  def self.instances
+    return []
   end
 
-  def destroy
-    debug "Test Destroy def"
-    subsys = "/subsystem=datasources"
-    jdbc_dri = "jdbc-driver=#{@resource[:driver_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{jdbc_dri}:remove"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+  def init()
+    $attrs_to_write = {}
+    $current_attrs = {}
+    $engine_path = @resource[:engine_path]
+    $nic = @resource[:nic]
+    $path = "/subsystem=datasources/jdbc-driver=#{@resource[:driver_name]}"
   end
 
   def exists?
-    debug "Debug exists? def"
-    subsys = "/subsystem=datasources"
-    jdbc_dri = "jdbc-driver=#{@resource[:driver_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{jdbc_dri}:read-resource"
-    ]
+    init()
     begin
-      PuppetX::Jboss.run_command(cmd)
+      $current_attrs = PuppetX::Jboss.exec_command($engine_path, $nic, $path, "read-resource")
+      return true
     rescue Puppet::ExecutionFailure => e
-      false
+      return false
     end
   end
 
-  def driver_module_name
-    output = ''
-    val = ''
-    subsys = "/subsystem=datasources"
-    jdbc_dri = "/jdbc-driver=#{@resource[:driver_name]}"
-
-    cmd = [
-      "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-      "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-      "--command=#{subsys}/#{jdbc_dri}:read-attribute\(name=driver-module-name\)"
-    ]
-    output = PuppetX::Jboss.run_command(cmd)
-    output.split("\n").collect do |line|
-       if line.start_with?("    \"result\"")
-         val = line.strip
-         val = val.split(" => ")
-         val = val[1].delete("\"")
-       end
-    end
-    return val
+  def create
+    PuppetX::Jboss.add_attributes($engine_path, $nic, $path, $current_attrs, build_attrs_to_add())
   end
 
-  def driver_module_name=(new_value)
-    subsys = "/subsystem=datasources"
-    jdbc_dri = "/jdbc-driver=#{@resource[:driver_name]}"
+  def destroy
+    PuppetX::Jboss.exec_command($engine_path, $nic, $path, "remove")
+  end
 
-    cmd = [
-    "#{@resource[:engine_path]}/bin/jboss-cli.sh",
-    "-c", "--controller=#{PuppetX::Jboss.ip_instance("#{@resource[:nic]}")}",
-    "--command=#{subsys}/#{jdbc_dri}:write-attribute\(name=value,value=#{new_value}\)"
-    ]
-    PuppetX::Jboss.run_command(cmd)
+  def build_attrs_to_add()
+    to_add = {}
+    to_add["driver-name"] = @resource[:driver_name]
+    to_add["driver-module-name"] = @resource[:driver_module_name]
+    to_add["driver-module-slot"] = @resource[:driver_module_slot] if @resource[:driver_module_slot] != :nil
+    to_add["driver-class-name"] = @resource[:driver_class_name] if @resource[:driver_class_name] != :nil
+    to_add["driver-xa-datasource-class-name"] = @resource[:driver_xa_datasource_class_name] if @resource[:driver_xa_datasource_class_name] != :nil
+
+    return to_add
   end
 
 end
